@@ -90,6 +90,20 @@ export default function EditorPage() {
     setSelectedId(null);
   }, [history]);
 
+  const handleRotate90 = useCallback((direction: "left" | "right") => {
+    const obj = history.state.find((o) => o.id === selectedId);
+    if (!obj) return;
+    const angle = direction === "left" ? Math.PI / 2 : -Math.PI / 2;
+    const newRotation: [number, number, number] = [
+      obj.rotation[0],
+      obj.rotation[1] + angle,
+      obj.rotation[2],
+    ];
+    history.set(
+      history.state.map((o) => (o.id === selectedId ? { ...o, rotation: newRotation } : o))
+    );
+  }, [selectedId, history]);
+
   // Room dimensions
   const ROOM = { w: 8, d: 6, h: 3 };
 
@@ -151,6 +165,10 @@ export default function EditorPage() {
       ) {
         e.preventDefault();
         history.redo();
+      } else if (e.key === "q" || e.key === "Q") {
+        handleRotate90("left");
+      } else if (e.key === "e" || e.key === "E") {
+        handleRotate90("right");
       } else if (e.key === "Escape") {
         setSelectedId(null);
       }
@@ -158,7 +176,7 @@ export default function EditorPage() {
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [handleDeleteSelected, handleDuplicate, history]);
+  }, [handleDeleteSelected, handleDuplicate, handleRotate90, history]);
 
   return (
     <div className="h-screen w-screen flex bg-slate-900 text-white overflow-hidden">
@@ -181,6 +199,7 @@ export default function EditorPage() {
           onSave={handleSave}
           onClear={handleClearAll}
           onSnap={handleSnap}
+          onRotate90={handleRotate90}
           hasSelection={!!selectedId}
           objectCount={history.state.length}
         />
@@ -206,6 +225,7 @@ export default function EditorPage() {
           {/* Help */}
           <div className="absolute bottom-4 left-4 text-xs text-slate-500 space-y-1">
             <div>G = Mover | R = Rotacionar | S = Escalar</div>
+            <div>Q = Girar 90° ← | E = Girar 90° →</div>
             <div>Ctrl+D = Duplicar | Del = Deletar | Esc = Deselecionar</div>
             <div>Ctrl+Z = Desfazer | Ctrl+Shift+Z = Refazer</div>
           </div>
