@@ -140,6 +140,48 @@ export default function EditorPage() {
     );
   }, [selectedId, history, ROOM]);
 
+  const handleScreenshot = useCallback(() => {
+    const canvas = document.querySelector("canvas");
+    if (!canvas) return;
+    // Deselect to hide transform controls in screenshot
+    setSelectedId(null);
+    setTimeout(() => {
+      const dataUrl = canvas.toDataURL("image/png");
+      const link = document.createElement("a");
+      link.download = `imovel3d_${Date.now()}.png`;
+      link.href = dataUrl;
+      link.click();
+    }, 100);
+  }, []);
+
+  const handleShare = useCallback(() => {
+    const canvas = document.querySelector("canvas");
+    if (!canvas) return;
+    setSelectedId(null);
+    setTimeout(async () => {
+      canvas.toBlob(async (blob) => {
+        if (!blob) return;
+        if (navigator.share) {
+          const file = new File([blob], "imovel3d.png", { type: "image/png" });
+          try {
+            await navigator.share({
+              title: "Meu projeto - Imóvel 3D",
+              text: "Veja como ficou o imóvel personalizado!",
+              files: [file],
+            });
+          } catch {}
+        } else {
+          // Fallback: open WhatsApp with text
+          window.open(
+            "https://wa.me/?text=Veja%20meu%20projeto%20no%20Im%C3%B3vel%203D%21%20" +
+              encodeURIComponent(window.location.href),
+            "_blank"
+          );
+        }
+      }, "image/png");
+    }, 100);
+  }, []);
+
   // Keyboard shortcuts
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -205,6 +247,8 @@ export default function EditorPage() {
           onClear={handleClearAll}
           onSnap={handleSnap}
           onRotate90={handleRotate90}
+          onScreenshot={handleScreenshot}
+          onShare={handleShare}
           hasSelection={!!selectedId}
           objectCount={history.state.length}
         />

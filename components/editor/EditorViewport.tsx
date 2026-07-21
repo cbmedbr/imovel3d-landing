@@ -235,6 +235,7 @@ export default function EditorViewport(props: EditorViewportProps) {
   return (
     <Canvas
       shadows
+      gl={{ preserveDrawingBuffer: true }}
       camera={{ position: [5, 4, 5], fov: 50 }}
       className="w-full h-full"
       onPointerMissed={() => props.onSelect(null)}

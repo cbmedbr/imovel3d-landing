@@ -16,6 +16,8 @@ interface ToolbarProps {
   onClear: () => void;
   onSnap: (target: SnapTarget) => void;
   onRotate90: (direction: "left" | "right" | "up" | "down") => void;
+  onScreenshot: () => void;
+  onShare: () => void;
   hasSelection: boolean;
   objectCount: number;
 }
@@ -23,7 +25,7 @@ interface ToolbarProps {
 export default function Toolbar({
   mode, onModeChange, onDelete, onDuplicate,
   onUndo, onRedo, onSave, onClear, onSnap, onRotate90,
-  hasSelection, objectCount,
+  onScreenshot, onShare, hasSelection, objectCount,
 }: ToolbarProps) {
   const [showSnap, setShowSnap] = useState(false);
 
@@ -178,6 +180,23 @@ export default function Toolbar({
         <span className="text-sm text-slate-500">
           {objectCount} objeto{objectCount !== 1 ? "s" : ""}
         </span>
+
+        <div className="w-px h-6 bg-slate-700" />
+
+        <button
+          onClick={onScreenshot}
+          className="px-3 py-1.5 rounded-md text-sm text-slate-300 hover:bg-slate-700 hover:text-white"
+          title="Baixar imagem da cena"
+        >
+          Foto
+        </button>
+        <button
+          onClick={onShare}
+          className="px-3 py-1.5 rounded-md text-sm bg-green-600 hover:bg-green-700 text-white font-medium"
+          title="Compartilhar via WhatsApp"
+        >
+          Compartilhar
+        </button>
 
         <div className="w-px h-6 bg-slate-700" />
 
