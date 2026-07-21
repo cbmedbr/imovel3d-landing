@@ -21,6 +21,7 @@ interface EditorViewportProps {
   onSelectWall: (id: string | null) => void;
   selectedWallId: string | null;
   onUpdateWall: (id: string, position: [number, number, number]) => void;
+  onDragEnd: () => void;
 }
 
 function Room({ wallColor, floorColor, room }: { wallColor: string; floorColor: string; room: RoomConfig }) {
@@ -148,12 +149,14 @@ function SelectedTransform({
   selectedId,
   mode,
   onUpdateObject,
+  onDragEnd,
   orbitRef,
 }: {
   placedObjects: PlacedObject[];
   selectedId: string | null;
   mode: EditorMode;
   onUpdateObject: (id: string, updates: Partial<PlacedObject>) => void;
+  onDragEnd: () => void;
   orbitRef: React.RefObject<any>;
 }) {
   const transformRef = useRef<any>(null);
@@ -165,11 +168,12 @@ function SelectedTransform({
 
     const onDragging = (event: { value: boolean }) => {
       if (orbitRef.current) orbitRef.current.enabled = !event.value;
+      if (!event.value) onDragEnd();
     };
 
     controls.addEventListener("dragging-changed", onDragging);
     return () => controls.removeEventListener("dragging-changed", onDragging);
-  }, [orbitRef]);
+  }, [orbitRef, onDragEnd]);
 
   useEffect(() => {
     const controls = transformRef.current;
@@ -357,6 +361,7 @@ function Scene(props: EditorViewportProps) {
         selectedId={props.selectedId}
         mode={props.mode}
         onUpdateObject={props.onUpdateObject}
+        onDragEnd={props.onDragEnd}
         orbitRef={orbitRef}
       />
 

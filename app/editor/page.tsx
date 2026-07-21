@@ -65,6 +65,11 @@ export default function EditorPage() {
     );
   }, [history]);
 
+  const handleDragEnd = useCallback(() => {
+    // Commit current state to history so undo undoes one drag at a time
+    history.set(history.state);
+  }, [history]);
+
   const handleDeleteSelected = useCallback(() => {
     if (selectedWallId) {
       setWalls((prev) => prev.filter((w) => w.id !== selectedWallId));
@@ -334,6 +339,7 @@ export default function EditorPage() {
             onSelectWall={(id) => { setSelectedWallId(id); if (id) setSelectedId(null); }}
             selectedWallId={selectedWallId}
             onUpdateWall={handleUpdateWall}
+            onDragEnd={handleDragEnd}
           />
 
           {/* Saved toast */}
