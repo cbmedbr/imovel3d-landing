@@ -284,6 +284,7 @@ export default function EditorPage() {
         onDeleteWall={handleDeleteWall}
         onWallsChange={setWalls}
         selectedWallId={selectedWallId}
+        onSelectWall={(id) => { setSelectedWallId(id); if (id) setSelectedId(null); }}
         onGetCurrentState={() => ({
           objects: history.state,
           wallColor,

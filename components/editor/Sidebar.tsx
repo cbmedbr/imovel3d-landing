@@ -26,6 +26,7 @@ interface SidebarProps {
   onDeleteWall: (id: string) => void;
   onWallsChange: (walls: InternalWall[]) => void;
   selectedWallId: string | null;
+  onSelectWall: (id: string | null) => void;
 }
 
 const wallColors = ["#e8e4df", "#f5f0eb", "#d4cfc7", "#c9d6df", "#d5c4a1", "#bfc9c3", "#e8d5d5", "#ffffff"];
@@ -40,7 +41,7 @@ export default function Sidebar({
   room, onRoomChange,
   splat, onSplatChange,
   onLoadTemplate,
-  walls, onAddWall, onDeleteWall, onWallsChange, selectedWallId,
+  walls, onAddWall, onDeleteWall, onWallsChange, selectedWallId, onSelectWall,
   onGetCurrentState,
 }: SidebarProps) {
   const [activeTab, setActiveTab] = useState<Tab>("moveis");
@@ -238,104 +239,102 @@ export default function Sidebar({
               {walls.length === 0 ? (
                 <p className="text-xs text-slate-500">Nenhuma parede interna. Clique + para adicionar.</p>
               ) : (
-                <div className="space-y-2 max-h-48 overflow-y-auto">
-                  {walls.map((w, i) => (
-                    <div
-                      key={w.id}
-                      className={`p-2 rounded-lg text-xs border transition-colors ${
-                        selectedWallId === w.id
-                          ? "bg-blue-500/20 border-blue-500/50"
-                          : "bg-slate-700/50 border-transparent"
-                      }`}
-                    >
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="font-medium">Parede {i + 1}</span>
+                <div className="space-y-1 max-h-[60vh] overflow-y-auto pr-1">
+                  {walls.map((w, i) => {
+                    const isSelected = selectedWallId === w.id;
+                    return (
+                      <div key={w.id} className="rounded-lg border transition-colors overflow-hidden"
+                        style={{ borderColor: isSelected ? "rgba(59,130,246,0.5)" : "transparent" }}
+                      >
+                        {/* Header — click to select */}
                         <button
-                          onClick={() => onDeleteWall(w.id)}
-                          className="text-red-400 hover:text-red-300 text-xs"
+                          onClick={() => onSelectWall(isSelected ? null : w.id)}
+                          className={`w-full flex items-center justify-between p-2.5 text-left transition-colors ${
+                            isSelected ? "bg-blue-500/20" : "bg-slate-700/50 hover:bg-slate-700"
+                          }`}
                         >
-                          Remover
+                          <div className="flex items-center gap-2">
+                            <div className={`w-2 h-2 rounded-full ${isSelected ? "bg-blue-400" : "bg-slate-500"}`} />
+                            <span className="text-sm font-medium">Parede {i + 1}</span>
+                            <span className="text-xs text-slate-500">{w.length.toFixed(1)}m</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-slate-500">
+                              {Math.abs(w.rotationY - Math.PI / 2) < 0.1 ? "V" : "H"}
+                            </span>
+                            <svg className={`w-3.5 h-3.5 text-slate-400 transition-transform ${isSelected ? "rotate-180" : ""}`}
+                              fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                            </svg>
+                          </div>
                         </button>
+
+                        {/* Controls — only show when selected */}
+                        {isSelected && (
+                          <div className="p-3 bg-slate-800/50 space-y-2 text-xs">
+                            <div>
+                              <div className="flex justify-between text-slate-400 mb-1">
+                                <span>Comprimento</span>
+                                <span>{w.length.toFixed(1)}m</span>
+                              </div>
+                              <input type="range" min={0.5} max={15} step={0.1} value={w.length}
+                                onChange={(e) => {
+                                  onWallsChange(walls.map((ww) => ww.id === w.id ? { ...ww, length: parseFloat(e.target.value) } : ww));
+                                }}
+                                className="w-full"
+                              />
+                            </div>
+                            <div>
+                              <div className="flex justify-between text-slate-400 mb-1">
+                                <span>Posição X</span>
+                                <span>{w.position[0].toFixed(1)}m</span>
+                              </div>
+                              <input type="range" min={-10} max={10} step={0.1} value={w.position[0]}
+                                onChange={(e) => {
+                                  const x = parseFloat(e.target.value);
+                                  onWallsChange(walls.map((ww) => ww.id === w.id ? { ...ww, position: [x, ww.position[1], ww.position[2]] as [number, number, number] } : ww));
+                                }}
+                                className="w-full"
+                              />
+                            </div>
+                            <div>
+                              <div className="flex justify-between text-slate-400 mb-1">
+                                <span>Posição Z</span>
+                                <span>{w.position[2].toFixed(1)}m</span>
+                              </div>
+                              <input type="range" min={-10} max={10} step={0.1} value={w.position[2]}
+                                onChange={(e) => {
+                                  const z = parseFloat(e.target.value);
+                                  onWallsChange(walls.map((ww) => ww.id === w.id ? { ...ww, position: [ww.position[0], ww.position[1], z] as [number, number, number] } : ww));
+                                }}
+                                className="w-full"
+                              />
+                            </div>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => onWallsChange(walls.map((ww) => ww.id === w.id ? { ...ww, rotationY: 0 } : ww))}
+                                className={`flex-1 py-1.5 rounded text-xs font-medium ${Math.abs(w.rotationY) < 0.1 ? "bg-blue-500 text-white" : "bg-slate-600 text-slate-300 hover:bg-slate-500"}`}
+                              >
+                                Horizontal
+                              </button>
+                              <button
+                                onClick={() => onWallsChange(walls.map((ww) => ww.id === w.id ? { ...ww, rotationY: Math.PI / 2 } : ww))}
+                                className={`flex-1 py-1.5 rounded text-xs font-medium ${Math.abs(w.rotationY - Math.PI / 2) < 0.1 ? "bg-blue-500 text-white" : "bg-slate-600 text-slate-300 hover:bg-slate-500"}`}
+                              >
+                                Vertical
+                              </button>
+                            </div>
+                            <button
+                              onClick={() => onDeleteWall(w.id)}
+                              className="w-full py-1.5 rounded bg-red-500/20 text-red-400 text-xs hover:bg-red-500/30 transition-colors"
+                            >
+                              Remover Parede
+                            </button>
+                          </div>
+                        )}
                       </div>
-                      <div className="space-y-1">
-                        <div className="flex justify-between text-slate-400">
-                          <span>Comprimento</span>
-                          <span>{w.length.toFixed(1)}m</span>
-                        </div>
-                        <input
-                          type="range" min={0.5} max={15} step={0.1}
-                          value={w.length}
-                          onChange={(e) => {
-                            const updated = walls.map((ww) =>
-                              ww.id === w.id ? { ...ww, length: parseFloat(e.target.value) } : ww
-                            );
-                            onWallsChange(updated);
-                          }}
-                          className="w-full"
-                        />
-                        <div className="flex justify-between text-slate-400">
-                          <span>Posição X</span>
-                          <span>{w.position[0].toFixed(1)}m</span>
-                        </div>
-                        <input
-                          type="range" min={-10} max={10} step={0.1}
-                          value={w.position[0]}
-                          onChange={(e) => {
-                            const x = parseFloat(e.target.value);
-                            const updated = walls.map((ww) =>
-                              ww.id === w.id ? { ...ww, position: [x, ww.position[1], ww.position[2]] as [number, number, number] } : ww
-                            );
-                            onWallsChange(updated);
-                          }}
-                          className="w-full"
-                        />
-                        <div className="flex justify-between text-slate-400">
-                          <span>Posição Z</span>
-                          <span>{w.position[2].toFixed(1)}m</span>
-                        </div>
-                        <input
-                          type="range" min={-10} max={10} step={0.1}
-                          value={w.position[2]}
-                          onChange={(e) => {
-                            const z = parseFloat(e.target.value);
-                            const updated = walls.map((ww) =>
-                              ww.id === w.id ? { ...ww, position: [ww.position[0], ww.position[1], z] as [number, number, number] } : ww
-                            );
-                            onWallsChange(updated);
-                          }}
-                          className="w-full"
-                        />
-                        <div className="flex gap-2 mt-1">
-                          <button
-                            onClick={() => {
-                              const updated = walls.map((ww) =>
-                                ww.id === w.id ? { ...ww, rotationY: 0 } : ww
-                              );
-                              onWallsChange(updated);
-                            }}
-                            className={`flex-1 py-1 rounded text-xs ${
-                              Math.abs(w.rotationY) < 0.1 ? "bg-blue-500 text-white" : "bg-slate-600 text-slate-300"
-                            }`}
-                          >
-                            Horizontal
-                          </button>
-                          <button
-                            onClick={() => {
-                              const updated = walls.map((ww) =>
-                                ww.id === w.id ? { ...ww, rotationY: Math.PI / 2 } : ww
-                              );
-                              onWallsChange(updated);
-                            }}
-                            className={`flex-1 py-1 rounded text-xs ${
-                              Math.abs(w.rotationY - Math.PI / 2) < 0.1 ? "bg-blue-500 text-white" : "bg-slate-600 text-slate-300"
-                            }`}
-                          >
-                            Vertical
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
