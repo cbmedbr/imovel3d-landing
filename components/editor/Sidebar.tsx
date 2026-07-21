@@ -429,18 +429,17 @@ export default function Sidebar({
               </div>
             </div>
 
-            {/* Gaussian Splat */}
+            {/* Gaussian Splat — Scan 3D */}
             <div>
               <h3 className="text-sm font-medium mb-3">Scan 3D do Imóvel</h3>
-              <p className="text-xs text-slate-400 mb-3">
-                Carregue um arquivo .splat ou .ply para visualizar o imóvel real em 3D.
-              </p>
 
               {splat ? (
                 <div className="space-y-3">
                   <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/30">
                     <div className="text-xs text-green-400 font-medium">Scan carregado</div>
-                    <div className="text-xs text-slate-400 mt-1 truncate">{splat.url}</div>
+                    <div className="text-xs text-slate-400 mt-1 truncate">
+                      {splat.url.startsWith("blob:") ? "Arquivo local" : splat.url}
+                    </div>
                   </div>
 
                   <div>
@@ -448,12 +447,7 @@ export default function Sidebar({
                       <span>Escala</span>
                       <span>{splat.scale[0].toFixed(1)}x</span>
                     </label>
-                    <input
-                      type="range"
-                      min={0.1}
-                      max={5}
-                      step={0.1}
-                      value={splat.scale[0]}
+                    <input type="range" min={0.1} max={5} step={0.1} value={splat.scale[0]}
                       onChange={(e) => {
                         const s = parseFloat(e.target.value);
                         onSplatChange({ ...splat, scale: [s, s, s] });
@@ -467,15 +461,38 @@ export default function Sidebar({
                       <span>Altura (Y)</span>
                       <span>{splat.position[1].toFixed(1)}m</span>
                     </label>
-                    <input
-                      type="range"
-                      min={-3}
-                      max={5}
-                      step={0.1}
-                      value={splat.position[1]}
+                    <input type="range" min={-5} max={5} step={0.1} value={splat.position[1]}
                       onChange={(e) => {
                         const y = parseFloat(e.target.value);
                         onSplatChange({ ...splat, position: [splat.position[0], y, splat.position[2]] });
+                      }}
+                      className="w-full mt-1"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs text-slate-400 flex justify-between">
+                      <span>Posição X</span>
+                      <span>{splat.position[0].toFixed(1)}m</span>
+                    </label>
+                    <input type="range" min={-10} max={10} step={0.1} value={splat.position[0]}
+                      onChange={(e) => {
+                        const x = parseFloat(e.target.value);
+                        onSplatChange({ ...splat, position: [x, splat.position[1], splat.position[2]] });
+                      }}
+                      className="w-full mt-1"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs text-slate-400 flex justify-between">
+                      <span>Posição Z</span>
+                      <span>{splat.position[2].toFixed(1)}m</span>
+                    </label>
+                    <input type="range" min={-10} max={10} step={0.1} value={splat.position[2]}
+                      onChange={(e) => {
+                        const z = parseFloat(e.target.value);
+                        onSplatChange({ ...splat, position: [splat.position[0], splat.position[1], z] });
                       }}
                       className="w-full mt-1"
                     />
@@ -489,7 +506,62 @@ export default function Sidebar({
                   </button>
                 </div>
               ) : (
-                <div className="space-y-2">
+                <div className="space-y-3">
+                  {/* File upload — drag & drop */}
+                  <label className="block cursor-pointer">
+                    <div
+                      className="w-full py-6 rounded-lg border-2 border-dashed border-slate-600 hover:border-cyan-500 transition-colors flex flex-col items-center gap-2"
+                      onDragOver={(e) => { e.preventDefault(); e.currentTarget.classList.add("border-cyan-400", "bg-cyan-500/5"); }}
+                      onDragLeave={(e) => { e.currentTarget.classList.remove("border-cyan-400", "bg-cyan-500/5"); }}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        e.currentTarget.classList.remove("border-cyan-400", "bg-cyan-500/5");
+                        const file = e.dataTransfer.files[0];
+                        if (file && (file.name.endsWith(".ply") || file.name.endsWith(".splat"))) {
+                          const url = URL.createObjectURL(file);
+                          onSplatChange({ url, position: [0, 0, 0], rotation: [0, 0, 0, 1], scale: [1, 1, 1] });
+                        }
+                      }}
+                    >
+                      <svg className="w-8 h-8 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                      </svg>
+                      <span className="text-sm text-slate-400">Arraste o arquivo aqui</span>
+                      <span className="text-xs text-slate-600">.ply ou .splat</span>
+                    </div>
+                    <input
+                      type="file"
+                      accept=".ply,.splat"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const url = URL.createObjectURL(file);
+                          onSplatChange({ url, position: [0, 0, 0], rotation: [0, 0, 0, 1], scale: [1, 1, 1] });
+                        }
+                      }}
+                      className="hidden"
+                    />
+                  </label>
+
+                  {/* URL input */}
+                  <div>
+                    <input
+                      type="text"
+                      placeholder="Ou cole URL do .splat / .ply"
+                      className="w-full px-3 py-2 rounded-lg bg-slate-700 text-sm text-white placeholder-slate-500 border border-slate-600 focus:border-blue-500 focus:outline-none"
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          const url = (e.target as HTMLInputElement).value.trim();
+                          if (url) {
+                            onSplatChange({ url, position: [0, 0, 0], rotation: [0, 0, 0, 1], scale: [1, 1, 1] });
+                          }
+                        }
+                      }}
+                    />
+                    <p className="text-xs text-slate-500 mt-1">Enter para carregar</p>
+                  </div>
+
+                  {/* Demo button */}
                   <button
                     onClick={() => {
                       onSplatChange({
@@ -499,33 +571,20 @@ export default function Sidebar({
                         scale: [1, 1, 1],
                       });
                     }}
-                    className="w-full py-2 rounded-lg bg-blue-500/20 text-blue-400 text-sm hover:bg-blue-500/30 transition-colors"
+                    className="w-full py-2 rounded-lg bg-slate-700/50 text-slate-400 text-xs hover:bg-slate-700 transition-colors"
                   >
                     Carregar Demo (Teste)
                   </button>
 
-                  <div className="relative">
-                    <input
-                      type="text"
-                      placeholder="Cole URL do .splat ou .ply"
-                      className="w-full px-3 py-2 rounded-lg bg-slate-700 text-sm text-white placeholder-slate-500 border border-slate-600 focus:border-blue-500 focus:outline-none"
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          const url = (e.target as HTMLInputElement).value.trim();
-                          if (url) {
-                            onSplatChange({
-                              url,
-                              position: [0, 0, 0],
-                              rotation: [0, 0, 0, 1],
-                              scale: [1, 1, 1],
-                            });
-                          }
-                        }
-                      }}
-                    />
-                    <p className="text-xs text-slate-500 mt-1">
-                      Pressione Enter para carregar
-                    </p>
+                  {/* How to get a .ply */}
+                  <div className="p-3 rounded-lg bg-slate-700/30 space-y-1">
+                    <div className="text-xs font-medium text-slate-300">Como gerar o scan 3D:</div>
+                    <ol className="text-xs text-slate-500 space-y-1 list-decimal list-inside">
+                      <li>Baixe o app <strong className="text-slate-400">Polycam</strong> (grátis)</li>
+                      <li>Escaneie o imóvel com a câmera</li>
+                      <li>Exporte como <strong className="text-slate-400">.ply</strong></li>
+                      <li>Arraste o arquivo aqui</li>
+                    </ol>
                   </div>
                 </div>
               )}
