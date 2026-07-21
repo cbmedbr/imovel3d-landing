@@ -24,10 +24,10 @@ export default function Hero() {
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <a
-              href="#demo"
+              href="/scan"
               className="w-full sm:w-auto px-8 py-4 bg-blue-500 hover:bg-blue-600 rounded-xl text-lg font-semibold transition-all hover:shadow-lg hover:shadow-blue-500/25"
             >
-              Ver Demo 3D
+              Escanear Imóvel
             </a>
             <a
               href="https://wa.me/5500000000000?text=Quero%20saber%20mais%20sobre%20o%20Im%C3%B3vel%203D"

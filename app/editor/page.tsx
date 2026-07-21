@@ -38,6 +38,20 @@ export default function EditorPage() {
   const [selectedWallId, setSelectedWallId] = useState<string | null>(null);
   const [showSaved, setShowSaved] = useState(false);
 
+  // Load pending splat from scan page
+  useEffect(() => {
+    const pendingSplat = localStorage.getItem("imovel3d_pending_splat");
+    if (pendingSplat) {
+      setSplat({
+        url: pendingSplat,
+        position: [0, 0, 0],
+        rotation: [0, 0, 0, 1],
+        scale: [1, 1, 1],
+      });
+      localStorage.removeItem("imovel3d_pending_splat");
+    }
+  }, []);
+
   // Auto-save on changes
   useEffect(() => {
     saveProject({ objects: history.state, wallColor, floorColor, room, splat, walls });
