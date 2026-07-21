@@ -20,7 +20,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({
         status: "demo",
         message: "Modo demo — REPLICATE_API_TOKEN não configurado. Usando scan de exemplo.",
-        splatUrl: "https://raw.githubusercontent.com/mkkellogg/GaussianSplats3D/main/demo/assets/data/garden/garden.ksplat",
+        // Demo: using a GLB model since splats need GPU
+        splatUrl: "demo-glb",
+        glbUrl: "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/main/Models/GlamVelvetSofa/glTF-Binary/GlamVelvetSofa.glb",
       });
     }
 

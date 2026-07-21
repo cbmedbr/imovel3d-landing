@@ -66,8 +66,9 @@ export default function ScanPage() {
         }
 
         if (data.status === "demo") {
-          // Demo mode — no API key
-          setResultUrl(data.splatUrl);
+          // Demo mode — no API key, use GLB fallback
+          const viewerUrl = data.glbUrl || data.splatUrl;
+          setResultUrl(viewerUrl);
           setStatus("done");
           setProgress("");
           return;

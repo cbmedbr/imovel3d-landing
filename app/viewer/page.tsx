@@ -1,14 +1,41 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
-import { Canvas, useThree } from "@react-three/fiber";
-import { OrbitControls } from "@react-three/drei";
+import { useEffect, useState, useRef, Suspense } from "react";
+import { Canvas, useThree, useFrame } from "@react-three/fiber";
+import { OrbitControls, useGLTF, Environment } from "@react-three/drei";
+import * as THREE from "three";
 
-function SplatLoader({ url }: { url: string }) {
+function GlbViewer({ url }: { url: string }) {
+  const { scene } = useGLTF(url);
+  const ref = useRef<THREE.Group>(null);
+
+  useEffect(() => {
+    // Center and scale model
+    const box = new THREE.Box3().setFromObject(scene);
+    const size = box.getSize(new THREE.Vector3());
+    const center = box.getCenter(new THREE.Vector3());
+    const maxDim = Math.max(size.x, size.y, size.z);
+    const scale = 3 / maxDim;
+
+    scene.scale.setScalar(scale);
+    scene.position.set(-center.x * scale, -center.y * scale + 0.5, -center.z * scale);
+  }, [scene]);
+
+  // Slow rotation
+  useFrame((_, delta) => {
+    if (ref.current) ref.current.rotation.y += delta * 0.2;
+  });
+
+  return (
+    <group ref={ref}>
+      <primitive object={scene} />
+    </group>
+  );
+}
+
+function SplatViewer({ url }: { url: string }) {
   const { scene } = useThree();
   const viewerRef = useRef<any>(null);
-  const [loaded, setLoaded] = useState(false);
-  const [error, setError] = useState(false);
 
   useEffect(() => {
     let disposed = false;
@@ -16,7 +43,6 @@ function SplatLoader({ url }: { url: string }) {
     async function load() {
       try {
         const GS = await import("@mkkellogg/gaussian-splats-3d");
-
         if (disposed) return;
 
         const viewer = new GS.DropInViewer({
@@ -24,23 +50,17 @@ function SplatLoader({ url }: { url: string }) {
           sharedMemoryForWorkers: false,
         });
 
-        await viewer.addSplatScene(url, {
-          splatAlphaRemovalThreshold: 5,
-        });
-
+        await viewer.addSplatScene(url, { splatAlphaRemovalThreshold: 5 });
         if (disposed) return;
 
         scene.add(viewer);
         viewerRef.current = viewer;
-        setLoaded(true);
       } catch (err) {
-        console.error("Splat load error:", err);
-        if (!disposed) setError(true);
+        console.error("Splat error:", err);
       }
     }
 
     load();
-
     return () => {
       disposed = true;
       if (viewerRef.current) {
@@ -53,13 +73,40 @@ function SplatLoader({ url }: { url: string }) {
   return null;
 }
 
+function Scene({ url }: { url: string }) {
+  const isGlb = url.endsWith(".glb") || url.endsWith(".gltf");
+
+  return (
+    <>
+      <ambientLight intensity={0.6} />
+      <directionalLight position={[5, 8, 5]} intensity={1.2} castShadow />
+      <directionalLight position={[-3, 4, -3]} intensity={0.4} />
+
+      {isGlb ? (
+        <Suspense fallback={null}>
+          <GlbViewer url={url} />
+          {/* Floor */}
+          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.01, 0]} receiveShadow>
+            <planeGeometry args={[20, 20]} />
+            <meshStandardMaterial color="#1a1a2e" roughness={1} />
+          </mesh>
+        </Suspense>
+      ) : (
+        <SplatViewer url={url} />
+      )}
+
+      <OrbitControls makeDefault autoRotate={!isGlb} autoRotateSpeed={0.5} />
+    </>
+  );
+}
+
 export default function ViewerPage() {
-  const [splatUrl, setSplatUrl] = useState<string | null>(null);
+  const [modelUrl, setModelUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const url = localStorage.getItem("imovel3d_viewer_splat");
-    if (url) setSplatUrl(url);
+    if (url) setModelUrl(url);
     setLoading(false);
   }, []);
 
@@ -71,7 +118,7 @@ export default function ViewerPage() {
     );
   }
 
-  if (!splatUrl) {
+  if (!modelUrl) {
     return (
       <div className="min-h-screen bg-slate-950 text-white flex flex-col items-center justify-center gap-4">
         <p className="text-slate-400">Nenhum scan para visualizar.</p>
@@ -94,7 +141,7 @@ export default function ViewerPage() {
           </a>
           <a
             href="/editor"
-            onClick={() => localStorage.setItem("imovel3d_pending_splat", splatUrl)}
+            onClick={() => localStorage.setItem("imovel3d_pending_splat", modelUrl)}
             className="px-4 py-2 bg-blue-500 hover:bg-blue-600 rounded-lg text-sm font-medium transition-colors"
           >
             Editar — R$29,90
@@ -103,44 +150,31 @@ export default function ViewerPage() {
       </nav>
 
       <div className="flex-1 relative">
-        {/* Loading overlay */}
-        <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none" id="splat-loading">
-          <div className="flex flex-col items-center gap-3">
-            <div className="w-10 h-10 border-3 border-blue-500 border-t-transparent rounded-full animate-spin" />
-            <span className="text-sm text-slate-400">Carregando modelo 3D...</span>
-          </div>
-        </div>
-
         <Canvas
-          camera={{ position: [5, 3, 5], fov: 50 }}
+          shadows
+          camera={{ position: [4, 3, 4], fov: 50 }}
           className="w-full h-full"
           gl={{ preserveDrawingBuffer: true }}
-          onCreated={() => {
-            // Hide loading after a few seconds (splat loads async)
-            setTimeout(() => {
-              const el = document.getElementById("splat-loading");
-              if (el) el.style.display = "none";
-            }, 5000);
-          }}
         >
-          <ambientLight intensity={0.3} />
-          <SplatLoader url={splatUrl} />
-          <OrbitControls makeDefault />
+          <Scene url={modelUrl} />
         </Canvas>
 
         <div className="absolute bottom-4 left-4 text-xs text-slate-500 space-y-1">
           <div>Arraste para rotacionar | Scroll para zoom</div>
-          <div>Clique direito + arraste para mover</div>
         </div>
 
         <div className="absolute bottom-4 right-4">
           <a
             href="/editor"
-            onClick={() => localStorage.setItem("imovel3d_pending_splat", splatUrl)}
+            onClick={() => localStorage.setItem("imovel3d_pending_splat", modelUrl)}
             className="px-6 py-3 bg-blue-500 hover:bg-blue-600 rounded-xl font-medium transition-colors shadow-lg shadow-blue-500/25"
           >
             Editar Imóvel — R$29,90
           </a>
+        </div>
+
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 px-4 py-2 bg-slate-800/80 backdrop-blur rounded-lg text-sm text-slate-300">
+          Visualização 3D do seu imóvel
         </div>
       </div>
     </div>
