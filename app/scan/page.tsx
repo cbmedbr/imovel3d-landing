@@ -253,14 +253,17 @@ export default function ScanPage() {
             <p className="text-slate-400">Seu imóvel foi renderizado em 3D com sucesso.</p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8">
-              <a
-                href={resultUrl || "#"}
-                target="_blank"
-                rel="noopener noreferrer"
+              <button
+                onClick={() => {
+                  if (resultUrl) {
+                    localStorage.setItem("imovel3d_viewer_splat", resultUrl);
+                    router.push("/viewer");
+                  }
+                }}
                 className="px-8 py-3 border border-white/20 hover:border-white/40 rounded-xl font-medium transition-colors"
               >
                 Visualizar 3D (Grátis)
-              </a>
+              </button>
               <button
                 onClick={handleEdit}
                 className="px-8 py-3 bg-blue-500 hover:bg-blue-600 rounded-xl font-medium transition-colors"
