@@ -42,70 +42,82 @@ export default function ScanPage() {
     setProgress("Enviando fotos...");
 
     try {
-      // Convert first image to base64 for Replicate
-      // In production, upload all images to storage and send URLs
-      const reader = new FileReader();
-      reader.onload = async () => {
-        const imageData = reader.result as string;
-
-        setProgress("Processando scan 3D... Isso pode levar 2-5 minutos.");
-
-        const res = await fetch("/api/scan", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            images: [imageData],
-            totalImages: files.length,
-          }),
+      // Resize image to max 1024px and convert to base64
+      const resizeImage = (file: File): Promise<string> => {
+        return new Promise((resolve) => {
+          const img = new Image();
+          img.onload = () => {
+            const canvas = document.createElement("canvas");
+            const maxSize = 1024;
+            let w = img.width, h = img.height;
+            if (w > h) { if (w > maxSize) { h = h * maxSize / w; w = maxSize; } }
+            else { if (h > maxSize) { w = w * maxSize / h; h = maxSize; } }
+            canvas.width = w;
+            canvas.height = h;
+            canvas.getContext("2d")!.drawImage(img, 0, 0, w, h);
+            resolve(canvas.toDataURL("image/jpeg", 0.8));
+          };
+          img.src = URL.createObjectURL(file);
         });
+      };
 
-        const data = await res.json();
+      const imageData = await resizeImage(files[0]);
+      setProgress("Processando scan 3D... Isso pode levar 1-2 minutos.");
 
-        if (!res.ok) {
-          throw new Error(data.error || "Erro ao processar");
-        }
+      const res = await fetch("/api/scan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          images: [imageData],
+          totalImages: files.length,
+        }),
+      });
 
-        if (data.status === "demo") {
-          setStatus("error");
-          setError(
-            "O processamento 3D requer a API key do Replicate (REPLICATE_API_TOKEN). " +
-            "Crie uma conta gratuita em replicate.com e adicione o token no .env.local para ativar o processamento real das fotos."
-          );
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Erro ao processar");
+      }
+
+      if (data.status === "demo") {
+        setStatus("error");
+        setError(
+          "O processamento 3D requer a API key do Replicate (REPLICATE_API_TOKEN). " +
+          "Crie uma conta gratuita em replicate.com e adicione o token no .env.local para ativar o processamento real das fotos."
+        );
+        return;
+      }
+
+      // Poll for result
+      const predictionId = data.id;
+      let attempts = 0;
+
+      while (attempts < 60) {
+        await new Promise((r) => setTimeout(r, 3000));
+        attempts++;
+
+        const statusRes = await fetch(`/api/scan?id=${predictionId}`);
+        const statusData = await statusRes.json();
+
+        if (statusData.status === "succeeded") {
+          const outputUrl = Array.isArray(statusData.output)
+            ? statusData.output.find((u: string) => u.endsWith(".glb") || u.endsWith(".obj")) || statusData.output[0]
+            : statusData.output;
+          setResultUrl(outputUrl);
+          setStatus("done");
+          setProgress("");
           return;
         }
 
-        // Poll for result
-        const predictionId = data.id;
-        let attempts = 0;
-
-        while (attempts < 120) {
-          await new Promise((r) => setTimeout(r, 5000));
-          attempts++;
-
-          const statusRes = await fetch(`/api/scan?id=${predictionId}`);
-          const statusData = await statusRes.json();
-
-          if (statusData.status === "succeeded") {
-            const splatUrl = Array.isArray(statusData.output)
-              ? statusData.output[0]
-              : statusData.output;
-            setResultUrl(splatUrl);
-            setStatus("done");
-            setProgress("");
-            return;
-          }
-
-          if (statusData.status === "failed") {
-            throw new Error(statusData.error || "Processamento falhou");
-          }
-
-          const elapsed = attempts * 5;
-          setProgress(`Processando scan 3D... (${Math.floor(elapsed / 60)}m${elapsed % 60}s)`);
+        if (statusData.status === "failed") {
+          throw new Error(statusData.error || "Processamento falhou");
         }
 
-        throw new Error("Timeout — processamento demorou demais");
-      };
-      reader.readAsDataURL(files[0]);
+        const elapsed = attempts * 3;
+        setProgress(`Processando scan 3D... (${elapsed}s)`);
+      }
+
+      throw new Error("Timeout — processamento demorou demais");
     } catch (err: any) {
       setStatus("error");
       setError(err.message);
