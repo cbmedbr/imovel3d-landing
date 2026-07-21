@@ -1,6 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import { EditorMode } from "./types";
+
+type SnapTarget = "floor" | "ceiling" | "wall-back" | "wall-left" | "wall-right";
 
 interface ToolbarProps {
   mode: EditorMode;
@@ -11,19 +14,30 @@ interface ToolbarProps {
   onRedo: () => void;
   onSave: () => void;
   onClear: () => void;
+  onSnap: (target: SnapTarget) => void;
   hasSelection: boolean;
   objectCount: number;
 }
 
 export default function Toolbar({
   mode, onModeChange, onDelete, onDuplicate,
-  onUndo, onRedo, onSave, onClear,
+  onUndo, onRedo, onSave, onClear, onSnap,
   hasSelection, objectCount,
 }: ToolbarProps) {
+  const [showSnap, setShowSnap] = useState(false);
+
   const tools: { mode: EditorMode; label: string; shortcut: string }[] = [
     { mode: "translate", label: "Mover", shortcut: "G" },
     { mode: "rotate", label: "Rotacionar", shortcut: "R" },
     { mode: "scale", label: "Escalar", shortcut: "S" },
+  ];
+
+  const snapOptions: { target: SnapTarget; label: string }[] = [
+    { target: "floor", label: "Chão" },
+    { target: "ceiling", label: "Teto" },
+    { target: "wall-back", label: "Parede Fundo" },
+    { target: "wall-left", label: "Parede Esquerda" },
+    { target: "wall-right", label: "Parede Direita" },
   ];
 
   return (
@@ -44,6 +58,43 @@ export default function Toolbar({
             {tool.label}
           </button>
         ))}
+
+        <div className="w-px h-6 bg-slate-700 mx-2" />
+
+        {/* Snap */}
+        <div className="relative">
+          <button
+            onClick={() => setShowSnap(!showSnap)}
+            disabled={!hasSelection}
+            className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+              hasSelection
+                ? showSnap
+                  ? "bg-cyan-500 text-white"
+                  : "text-cyan-400 hover:bg-cyan-500/20"
+                : "text-slate-600 cursor-not-allowed"
+            }`}
+            title="Colar em superfície"
+          >
+            Colar
+          </button>
+
+          {showSnap && hasSelection && (
+            <div className="absolute top-full left-0 mt-1 bg-slate-700 border border-slate-600 rounded-lg shadow-xl z-50 py-1 min-w-[160px]">
+              {snapOptions.map((opt) => (
+                <button
+                  key={opt.target}
+                  onClick={() => {
+                    onSnap(opt.target);
+                    setShowSnap(false);
+                  }}
+                  className="w-full text-left px-4 py-2 text-sm text-slate-200 hover:bg-slate-600 transition-colors"
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
 
         <div className="w-px h-6 bg-slate-700 mx-2" />
 

@@ -90,6 +90,41 @@ export default function EditorPage() {
     setSelectedId(null);
   }, [history]);
 
+  // Room dimensions
+  const ROOM = { w: 8, d: 6, h: 3 };
+
+  const handleSnap = useCallback((target: "floor" | "ceiling" | "wall-back" | "wall-left" | "wall-right") => {
+    const obj = history.state.find((o) => o.id === selectedId);
+    if (!obj) return;
+    const bs = obj.furniture.boundingSize;
+    const sy = obj.scale[1];
+    const sx = obj.scale[0];
+    const sz = obj.scale[2];
+    let pos: [number, number, number] = [...obj.position];
+
+    switch (target) {
+      case "floor":
+        pos[1] = (bs[1] * sy) / 2;
+        break;
+      case "ceiling":
+        pos[1] = ROOM.h - (bs[1] * sy) / 2;
+        break;
+      case "wall-back":
+        pos[2] = -ROOM.d / 2 + (bs[2] * sz) / 2;
+        break;
+      case "wall-left":
+        pos[0] = -ROOM.w / 2 + (bs[0] * sx) / 2;
+        break;
+      case "wall-right":
+        pos[0] = ROOM.w / 2 - (bs[0] * sx) / 2;
+        break;
+    }
+
+    history.set(
+      history.state.map((o) => (o.id === selectedId ? { ...o, position: pos } : o))
+    );
+  }, [selectedId, history, ROOM]);
+
   // Keyboard shortcuts
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -145,6 +180,7 @@ export default function EditorPage() {
           onRedo={history.redo}
           onSave={handleSave}
           onClear={handleClearAll}
+          onSnap={handleSnap}
           hasSelection={!!selectedId}
           objectCount={history.state.length}
         />
