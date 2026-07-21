@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import EditorViewport from "@/components/editor/EditorViewport";
 import Sidebar from "@/components/editor/Sidebar";
 import Toolbar from "@/components/editor/Toolbar";
-import { FurnitureItem, PlacedObject, EditorMode, EditorState } from "@/components/editor/types";
+import { FurnitureItem, PlacedObject, EditorMode, EditorState, RoomConfig, DEFAULT_ROOM } from "@/components/editor/types";
 import { useHistory } from "@/components/editor/useHistory";
 
 const STORAGE_KEY = "imovel3d_project";
@@ -32,12 +32,13 @@ export default function EditorPage() {
   const [mode, setMode] = useState<EditorMode>("translate");
   const [wallColor, setWallColor] = useState(saved?.wallColor ?? "#e8e4df");
   const [floorColor, setFloorColor] = useState(saved?.floorColor ?? "#c4b8a8");
+  const [room, setRoom] = useState<RoomConfig>(saved?.room ?? DEFAULT_ROOM);
   const [showSaved, setShowSaved] = useState(false);
 
   // Auto-save on changes
   useEffect(() => {
-    saveProject({ objects: history.state, wallColor, floorColor });
-  }, [history.state, wallColor, floorColor]);
+    saveProject({ objects: history.state, wallColor, floorColor, room });
+  }, [history.state, wallColor, floorColor, room]);
 
   const handleAddFurniture = useCallback((item: FurnitureItem) => {
     const newObj: PlacedObject = {
@@ -80,7 +81,7 @@ export default function EditorPage() {
   }, [selectedId, history]);
 
   const handleSave = useCallback(() => {
-    saveProject({ objects: history.state, wallColor, floorColor });
+    saveProject({ objects: history.state, wallColor, floorColor, room });
     setShowSaved(true);
     setTimeout(() => setShowSaved(false), 2000);
   }, [history.state, wallColor, floorColor]);
@@ -105,9 +106,6 @@ export default function EditorPage() {
     );
   }, [selectedId, history]);
 
-  // Room dimensions
-  const ROOM = { w: 8, d: 6, h: 3 };
-
   const handleSnap = useCallback((target: "floor" | "ceiling" | "wall-back" | "wall-left" | "wall-right") => {
     const obj = history.state.find((o) => o.id === selectedId);
     if (!obj) return;
@@ -122,23 +120,23 @@ export default function EditorPage() {
         pos[1] = (bs[1] * sy) / 2;
         break;
       case "ceiling":
-        pos[1] = ROOM.h - (bs[1] * sy) / 2;
+        pos[1] = room.height - (bs[1] * sy) / 2;
         break;
       case "wall-back":
-        pos[2] = -ROOM.d / 2 + (bs[2] * sz) / 2;
+        pos[2] = -room.depth / 2 + (bs[2] * sz) / 2;
         break;
       case "wall-left":
-        pos[0] = -ROOM.w / 2 + (bs[0] * sx) / 2;
+        pos[0] = -room.width / 2 + (bs[0] * sx) / 2;
         break;
       case "wall-right":
-        pos[0] = ROOM.w / 2 - (bs[0] * sx) / 2;
+        pos[0] = room.width / 2 - (bs[0] * sx) / 2;
         break;
     }
 
     history.set(
       history.state.map((o) => (o.id === selectedId ? { ...o, position: pos } : o))
     );
-  }, [selectedId, history, ROOM]);
+  }, [selectedId, history, room]);
 
   const handleScreenshot = useCallback(() => {
     const canvas = document.querySelector("canvas");
@@ -233,6 +231,8 @@ export default function EditorPage() {
         onWallColorChange={setWallColor}
         floorColor={floorColor}
         onFloorColorChange={setFloorColor}
+        room={room}
+        onRoomChange={setRoom}
       />
 
       <div className="flex-1 flex flex-col">
@@ -262,6 +262,7 @@ export default function EditorPage() {
             mode={mode}
             wallColor={wallColor}
             floorColor={floorColor}
+            room={room}
           />
 
           {/* Saved toast */}

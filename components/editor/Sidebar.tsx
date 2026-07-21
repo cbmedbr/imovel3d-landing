@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { FURNITURE_CATALOG, FurnitureItem } from "./types";
+import { FURNITURE_CATALOG, FurnitureItem, RoomConfig } from "./types";
 
 interface SidebarProps {
   onAddFurniture: (item: FurnitureItem) => void;
@@ -9,20 +9,33 @@ interface SidebarProps {
   onWallColorChange: (color: string) => void;
   floorColor: string;
   onFloorColorChange: (color: string) => void;
+  room: RoomConfig;
+  onRoomChange: (room: RoomConfig) => void;
 }
 
 const wallColors = ["#e8e4df", "#f5f0eb", "#d4cfc7", "#c9d6df", "#d5c4a1", "#bfc9c3", "#e8d5d5", "#ffffff"];
 const floorColors = ["#c4b8a8", "#8B7355", "#a0522d", "#6B5B4B", "#d2b48c", "#808080", "#c0c0c0", "#3c3c3c"];
 
+type Tab = "moveis" | "materiais" | "sala";
+
 export default function Sidebar({
   onAddFurniture,
-  wallColor,
-  onWallColorChange,
-  floorColor,
-  onFloorColorChange,
+  wallColor, onWallColorChange,
+  floorColor, onFloorColorChange,
+  room, onRoomChange,
 }: SidebarProps) {
-  const [activeTab, setActiveTab] = useState<"moveis" | "materiais">("moveis");
+  const [activeTab, setActiveTab] = useState<Tab>("moveis");
   const [expandedCategory, setExpandedCategory] = useState<string | null>("Sala de Estar");
+
+  const updateRoom = (key: keyof RoomConfig, value: number | boolean) => {
+    onRoomChange({ ...room, [key]: value });
+  };
+
+  const tabs: { id: Tab; label: string }[] = [
+    { id: "moveis", label: "Móveis" },
+    { id: "materiais", label: "Materiais" },
+    { id: "sala", label: "Sala" },
+  ];
 
   return (
     <div className="w-72 bg-slate-800 border-r border-slate-700 flex flex-col h-full">
@@ -36,26 +49,19 @@ export default function Sidebar({
 
       {/* Tabs */}
       <div className="flex border-b border-slate-700">
-        <button
-          onClick={() => setActiveTab("moveis")}
-          className={`flex-1 py-3 text-sm font-medium transition-colors ${
-            activeTab === "moveis"
-              ? "text-blue-400 border-b-2 border-blue-400"
-              : "text-slate-400 hover:text-white"
-          }`}
-        >
-          Móveis
-        </button>
-        <button
-          onClick={() => setActiveTab("materiais")}
-          className={`flex-1 py-3 text-sm font-medium transition-colors ${
-            activeTab === "materiais"
-              ? "text-blue-400 border-b-2 border-blue-400"
-              : "text-slate-400 hover:text-white"
-          }`}
-        >
-          Materiais
-        </button>
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={`flex-1 py-3 text-sm font-medium transition-colors ${
+              activeTab === tab.id
+                ? "text-blue-400 border-b-2 border-blue-400"
+                : "text-slate-400 hover:text-white"
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
       </div>
 
       {/* Content */}
@@ -92,9 +98,11 @@ export default function Sidebar({
                         className="flex flex-col items-center p-3 rounded-lg bg-slate-700/50 hover:bg-slate-600 transition-colors border border-transparent hover:border-blue-500/30"
                       >
                         <div
-                          className="w-10 h-10 rounded-md mb-2"
+                          className="w-10 h-10 rounded-md mb-2 flex items-center justify-center text-lg"
                           style={{ backgroundColor: item.parts[0]?.color ?? "#666" }}
-                        />
+                        >
+                          {item.glbUrl ? "3D" : ""}
+                        </div>
                         <span className="text-xs text-center text-slate-300 leading-tight">
                           {item.name}
                         </span>
@@ -109,7 +117,6 @@ export default function Sidebar({
 
         {activeTab === "materiais" && (
           <div className="p-4 space-y-6">
-            {/* Wall colors */}
             <div>
               <h3 className="text-sm font-medium mb-3">Cor das Paredes</h3>
               <div className="grid grid-cols-4 gap-2">
@@ -134,7 +141,6 @@ export default function Sidebar({
               />
             </div>
 
-            {/* Floor colors */}
             <div>
               <h3 className="text-sm font-medium mb-3">Cor do Piso</h3>
               <div className="grid grid-cols-4 gap-2">
@@ -160,11 +166,107 @@ export default function Sidebar({
             </div>
           </div>
         )}
+
+        {activeTab === "sala" && (
+          <div className="p-4 space-y-6">
+            {/* Dimensions */}
+            <div>
+              <h3 className="text-sm font-medium mb-3">Dimensões da Sala</h3>
+              <div className="space-y-3">
+                <div>
+                  <label className="text-xs text-slate-400 flex justify-between">
+                    <span>Largura</span>
+                    <span>{room.width.toFixed(1)}m</span>
+                  </label>
+                  <input
+                    type="range"
+                    min={3}
+                    max={20}
+                    step={0.5}
+                    value={room.width}
+                    onChange={(e) => updateRoom("width", parseFloat(e.target.value))}
+                    className="w-full mt-1"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-400 flex justify-between">
+                    <span>Profundidade</span>
+                    <span>{room.depth.toFixed(1)}m</span>
+                  </label>
+                  <input
+                    type="range"
+                    min={3}
+                    max={20}
+                    step={0.5}
+                    value={room.depth}
+                    onChange={(e) => updateRoom("depth", parseFloat(e.target.value))}
+                    className="w-full mt-1"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-400 flex justify-between">
+                    <span>Altura (pé-direito)</span>
+                    <span>{room.height.toFixed(1)}m</span>
+                  </label>
+                  <input
+                    type="range"
+                    min={2.4}
+                    max={5}
+                    step={0.1}
+                    value={room.height}
+                    onChange={(e) => updateRoom("height", parseFloat(e.target.value))}
+                    className="w-full mt-1"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Walls toggle */}
+            <div>
+              <h3 className="text-sm font-medium mb-3">Paredes</h3>
+              <div className="space-y-2">
+                {([
+                  ["showWallBack", "Parede Fundo"],
+                  ["showWallLeft", "Parede Esquerda"],
+                  ["showWallRight", "Parede Direita"],
+                  ["showWallFront", "Parede Frente"],
+                  ["showCeiling", "Teto"],
+                ] as [keyof RoomConfig, string][]).map(([key, label]) => (
+                  <label key={key} className="flex items-center justify-between cursor-pointer group">
+                    <span className="text-sm text-slate-300 group-hover:text-white">{label}</span>
+                    <button
+                      onClick={() => updateRoom(key, !room[key])}
+                      className={`w-10 h-5 rounded-full transition-colors relative ${
+                        room[key] ? "bg-blue-500" : "bg-slate-600"
+                      }`}
+                    >
+                      <span
+                        className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform ${
+                          room[key] ? "left-5" : "left-0.5"
+                        }`}
+                      />
+                    </button>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {/* Area info */}
+            <div className="p-3 rounded-lg bg-slate-700/50">
+              <div className="text-xs text-slate-400">Área total</div>
+              <div className="text-lg font-bold text-white">
+                {(room.width * room.depth).toFixed(1)} m²
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Footer */}
       <div className="p-3 border-t border-slate-700 text-xs text-slate-500 text-center">
-        Clique num móvel para adicionar à cena
+        {activeTab === "moveis" && "Clique num móvel para adicionar à cena"}
+        {activeTab === "materiais" && "Escolha cores para paredes e piso"}
+        {activeTab === "sala" && "Ajuste dimensões e visibilidade"}
       </div>
     </div>
   );

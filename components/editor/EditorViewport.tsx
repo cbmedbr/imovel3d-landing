@@ -4,7 +4,7 @@ import { useRef, useEffect, useState, Suspense } from "react";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, TransformControls, Grid, useGLTF } from "@react-three/drei";
 import * as THREE from "three";
-import { PlacedObject, EditorMode, FurniturePart } from "./types";
+import { PlacedObject, EditorMode, FurniturePart, RoomConfig } from "./types";
 
 interface EditorViewportProps {
   placedObjects: PlacedObject[];
@@ -14,29 +14,54 @@ interface EditorViewportProps {
   mode: EditorMode;
   wallColor: string;
   floorColor: string;
+  room: RoomConfig;
 }
 
-function Room({ wallColor, floorColor }: { wallColor: string; floorColor: string }) {
-  const w = 8, d = 6, h = 3;
+function Room({ wallColor, floorColor, room }: { wallColor: string; floorColor: string; room: RoomConfig }) {
+  const { width: w, depth: d, height: h } = room;
 
   return (
     <group>
+      {/* Floor */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
         <planeGeometry args={[w, d]} />
         <meshStandardMaterial color={floorColor} roughness={0.8} />
       </mesh>
-      <mesh position={[0, h / 2, -d / 2]} receiveShadow>
-        <planeGeometry args={[w, h]} />
-        <meshStandardMaterial color={wallColor} roughness={0.9} side={THREE.DoubleSide} />
-      </mesh>
-      <mesh position={[-w / 2, h / 2, 0]} rotation={[0, Math.PI / 2, 0]} receiveShadow>
-        <planeGeometry args={[d, h]} />
-        <meshStandardMaterial color={wallColor} roughness={0.9} side={THREE.DoubleSide} />
-      </mesh>
-      <mesh position={[w / 2, h / 2, 0]} rotation={[0, -Math.PI / 2, 0]} receiveShadow>
-        <planeGeometry args={[d, h]} />
-        <meshStandardMaterial color={wallColor} roughness={0.9} side={THREE.DoubleSide} />
-      </mesh>
+      {/* Ceiling */}
+      {room.showCeiling && (
+        <mesh position={[0, h, 0]} rotation={[Math.PI / 2, 0, 0]} receiveShadow>
+          <planeGeometry args={[w, d]} />
+          <meshStandardMaterial color="#f5f5f5" roughness={0.9} side={THREE.DoubleSide} />
+        </mesh>
+      )}
+      {/* Back wall */}
+      {room.showWallBack && (
+        <mesh position={[0, h / 2, -d / 2]} receiveShadow>
+          <planeGeometry args={[w, h]} />
+          <meshStandardMaterial color={wallColor} roughness={0.9} side={THREE.DoubleSide} />
+        </mesh>
+      )}
+      {/* Front wall */}
+      {room.showWallFront && (
+        <mesh position={[0, h / 2, d / 2]} rotation={[0, Math.PI, 0]} receiveShadow>
+          <planeGeometry args={[w, h]} />
+          <meshStandardMaterial color={wallColor} roughness={0.9} side={THREE.DoubleSide} />
+        </mesh>
+      )}
+      {/* Left wall */}
+      {room.showWallLeft && (
+        <mesh position={[-w / 2, h / 2, 0]} rotation={[0, Math.PI / 2, 0]} receiveShadow>
+          <planeGeometry args={[d, h]} />
+          <meshStandardMaterial color={wallColor} roughness={0.9} side={THREE.DoubleSide} />
+        </mesh>
+      )}
+      {/* Right wall */}
+      {room.showWallRight && (
+        <mesh position={[w / 2, h / 2, 0]} rotation={[0, -Math.PI / 2, 0]} receiveShadow>
+          <planeGeometry args={[d, h]} />
+          <meshStandardMaterial color={wallColor} roughness={0.9} side={THREE.DoubleSide} />
+        </mesh>
+      )}
     </group>
   );
 }
@@ -181,7 +206,7 @@ function Scene(props: EditorViewportProps) {
       <directionalLight position={[-3, 5, -3]} intensity={0.4} />
       <hemisphereLight args={["#b1e1ff", "#b97a20", 0.3]} />
 
-      <Room wallColor={props.wallColor} floorColor={props.floorColor} />
+      <Room wallColor={props.wallColor} floorColor={props.floorColor} room={props.room} />
 
       <Grid
         args={[20, 20]}

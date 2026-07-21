@@ -27,10 +27,33 @@ export interface PlacedObject {
   scale: [number, number, number];
 }
 
+export interface RoomConfig {
+  width: number;
+  depth: number;
+  height: number;
+  showWallBack: boolean;
+  showWallLeft: boolean;
+  showWallRight: boolean;
+  showWallFront: boolean;
+  showCeiling: boolean;
+}
+
+export const DEFAULT_ROOM: RoomConfig = {
+  width: 8,
+  depth: 6,
+  height: 3,
+  showWallBack: true,
+  showWallLeft: true,
+  showWallRight: true,
+  showWallFront: false,
+  showCeiling: false,
+};
+
 export interface EditorState {
   objects: PlacedObject[];
   wallColor: string;
   floorColor: string;
+  room?: RoomConfig;
 }
 
 // Multi-part furniture (fallback when no .glb)
