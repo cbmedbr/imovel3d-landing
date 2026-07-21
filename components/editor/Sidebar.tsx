@@ -181,22 +181,24 @@ export default function Sidebar({
 
         {activeTab === "sala" && (
           <div className="p-4 space-y-6">
-            {/* Templates */}
-            <div>
-              <h3 className="text-sm font-medium mb-3">Plantas Prontas</h3>
-              <div className="space-y-2">
-                {TEMPLATES.map((tmpl) => (
-                  <button
-                    key={tmpl.id}
-                    onClick={() => onLoadTemplate(tmpl.create())}
-                    className="w-full p-3 rounded-lg bg-gradient-to-r from-blue-500/20 to-cyan-500/20 border border-blue-500/30 hover:border-blue-400/50 transition-colors text-left"
-                  >
-                    <div className="text-sm font-medium text-white">{tmpl.name}</div>
-                    <div className="text-xs text-slate-400 mt-1">{tmpl.description}</div>
-                  </button>
-                ))}
+            {/* Templates (shown when available) */}
+            {TEMPLATES.length > 0 && (
+              <div>
+                <h3 className="text-sm font-medium mb-3">Plantas Prontas</h3>
+                <div className="space-y-2">
+                  {TEMPLATES.map((tmpl) => (
+                    <button
+                      key={tmpl.id}
+                      onClick={() => onLoadTemplate(tmpl.create())}
+                      className="w-full p-3 rounded-lg bg-gradient-to-r from-blue-500/20 to-cyan-500/20 border border-blue-500/30 hover:border-blue-400/50 transition-colors text-left"
+                    >
+                      <div className="text-sm font-medium text-white">{tmpl.name}</div>
+                      <div className="text-xs text-slate-400 mt-1">{tmpl.description}</div>
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Internal Walls */}
             <div>
