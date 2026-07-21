@@ -1,8 +1,8 @@
 "use client";
 
-import { useRef, useEffect, useCallback } from "react";
+import { useRef, useEffect, useState, Suspense } from "react";
 import { Canvas } from "@react-three/fiber";
-import { OrbitControls, TransformControls, Grid } from "@react-three/drei";
+import { OrbitControls, TransformControls, Grid, useGLTF } from "@react-three/drei";
 import * as THREE from "three";
 import { PlacedObject, EditorMode, FurniturePart } from "./types";
 
@@ -54,6 +54,20 @@ function PartMesh({ part }: { part: FurniturePart }) {
   );
 }
 
+function GlbModel({ url, glbScale = 1, glbOffsetY = 0 }: { url: string; glbScale?: number; glbOffsetY?: number }) {
+  const { scene } = useGLTF(url);
+  const cloned = scene.clone(true);
+
+  cloned.traverse((child) => {
+    if ((child as THREE.Mesh).isMesh) {
+      child.castShadow = true;
+      child.receiveShadow = true;
+    }
+  });
+
+  return <primitive object={cloned} scale={glbScale} position={[0, glbOffsetY, 0]} />;
+}
+
 function FurnitureObject({
   obj,
   isSelected,
@@ -63,6 +77,8 @@ function FurnitureObject({
   isSelected: boolean;
   onSelect: () => void;
 }) {
+  const hasGlb = !!obj.furniture.glbUrl;
+
   return (
     <group
       position={obj.position}
@@ -73,9 +89,19 @@ function FurnitureObject({
         onSelect();
       }}
     >
-      {obj.furniture.parts.map((part, i) => (
-        <PartMesh key={i} part={part} />
-      ))}
+      {hasGlb ? (
+        <Suspense fallback={
+          obj.furniture.parts.map((part, i) => <PartMesh key={i} part={part} />)
+        }>
+          <GlbModel
+            url={obj.furniture.glbUrl!}
+            glbScale={obj.furniture.glbScale}
+            glbOffsetY={obj.furniture.glbOffsetY}
+          />
+        </Suspense>
+      ) : (
+        obj.furniture.parts.map((part, i) => <PartMesh key={i} part={part} />)
+      )}
       {isSelected && (
         <mesh>
           <boxGeometry args={obj.furniture.boundingSize} />
