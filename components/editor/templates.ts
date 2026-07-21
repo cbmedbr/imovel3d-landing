@@ -1,6 +1,5 @@
-import { PlacedObject, RoomConfig, FURNITURE_CATALOG } from "./types";
+import { PlacedObject, RoomConfig, InternalWall, FURNITURE_CATALOG } from "./types";
 
-// Get furniture by id from catalog
 function getFurniture(id: string) {
   for (const items of Object.values(FURNITURE_CATALOG)) {
     const found = items.find((i) => i.id === id);
@@ -25,114 +24,110 @@ function obj(
   };
 }
 
-// Internal wall as a thin box
-function wall(
-  name: string,
-  pos: [number, number, number],
-  size: [number, number, number],
+function iwall(
+  id: string,
+  x: number,
+  z: number,
+  length: number,
   rotY: number = 0,
-): PlacedObject {
+  height: number = 2.8,
+): InternalWall {
   return {
-    id: `wall_${name}_${Math.random().toString(36).slice(2, 8)}`,
-    furniture: {
-      id: `wall_${name}`,
-      name: `Parede ${name}`,
-      category: "Estrutura",
-      parts: [{ shape: "box", size, position: [0, 0, 0], color: "#d4cfc7" }],
-      boundingSize: size,
-      defaultY: size[1] / 2,
-    },
-    position: pos,
-    rotation: [0, rotY, 0],
-    scale: [1, 1, 1],
+    id: `iw_${id}_${Math.random().toString(36).slice(2, 8)}`,
+    position: [x, 0, z],
+    length,
+    height,
+    thickness: 0.12,
+    rotationY: rotY,
   };
 }
 
 // D-Yard Home Design - Centro Florianópolis
-// Based on floor plan measurements (in meters):
-// Total approx: 9.04m x 8.5m
-// Living 29m², Suite Principal 16.68m², Suite 02 12.73m², Suite 03 10.47m²
-// BWC 03 3.08m², Sala de Jantar 10.45m²
+// Floor plan analysis:
+// Total ~9.0m x 8.5m
+// Left side: Sala de Jantar (bottom), Suite 03 (mid), BWC (top-left), Suite 02 (top)
+// Right side: Living/Kitchen (bottom-right), Suite Principal (top-right)
+// Main horizontal wall divides suites from living area at z ≈ -1.0
 
 export function createDYardApartment(): {
   objects: PlacedObject[];
+  walls: InternalWall[];
   room: RoomConfig;
   wallColor: string;
   floorColor: string;
 } {
-  const wallH = 2.8;
-  const wallT = 0.15;
+  // Internal walls
+  const walls: InternalWall[] = [
+    // Main horizontal wall (separates living from suites)
+    iwall("main-h", 0, -1.2, 9.0, 0),
 
+    // Suite Principal right wall (vertical, right side)
+    iwall("sp-left", 1.0, -3.2, 4.0, Math.PI / 2),
+
+    // Suite 02 / Suite 03 divider (vertical)
+    iwall("s2-s3", -1.5, -3.0, 3.5, Math.PI / 2),
+
+    // BWC left wall (vertical)
+    iwall("bwc-l", -3.0, -3.8, 1.5, Math.PI / 2),
+
+    // BWC bottom wall (horizontal)
+    iwall("bwc-b", -2.5, -3.0, 1.2, 0),
+
+    // Corridor wall segment (horizontal, between suites and BWC)
+    iwall("corr", -0.3, -2.8, 2.2, 0),
+
+    // Kitchen divider (peninsula, lower height)
+    iwall("cozinha", 3.0, 0.8, 2.5, Math.PI / 2, 1.0),
+  ];
+
+  // Furniture
   const objects: (PlacedObject | null)[] = [
-    // === INTERNAL WALLS ===
+    // === LIVING (29 m²) — right side, bottom ===
+    obj("sofa-glb", [2.0, 0, 0.2], Math.PI),
+    obj("mesa-centro", [2.0, 0.37, -0.6], 0),
+    obj("rack-tv", [2.0, 0.37, 1.5], 0),
+    obj("tv", [2.0, 1.0, 1.65], 0),
+    obj("poltrona", [0.3, 0.35, 0.0], Math.PI / 2),
+    obj("luminaria-chao", [3.5, 0.75, -0.8], 0),
 
-    // Wall between Living and Suites (horizontal, runs along top of living area)
-    wall("living-suites", [0, wallH / 2, -1.5], [9.0, wallH, wallT]),
+    // === SALA DE JANTAR (10.45 m²) — left side, bottom ===
+    obj("mesa-jantar", [-2.5, 0.72, 1.2], 0),
+    obj("cadeira", [-3.2, 0.43, 0.8], 0),
+    obj("cadeira", [-1.8, 0.43, 0.8], 0),
+    obj("cadeira", [-3.2, 0.43, 1.6], Math.PI),
+    obj("cadeira", [-1.8, 0.43, 1.6], Math.PI),
+    obj("cadeira", [-2.5, 0.43, 0.5], Math.PI / 2),
+    obj("cadeira", [-2.5, 0.43, 1.9], -Math.PI / 2),
 
-    // Wall between Suite Principal and Suite 02 (vertical)
-    wall("suite1-suite2", [-0.8, wallH / 2, -3.5], [wallT, wallH, 4.0]),
+    // === COZINHA — far right ===
+    obj("bancada", [3.8, 0.45, 2.0], Math.PI / 2),
+    obj("geladeira", [4.0, 0.9, -0.2], Math.PI / 2),
+    obj("fogao", [3.8, 0.45, 0.8], Math.PI / 2),
 
-    // Wall between Suite 02 and Suite 03 (vertical)
-    wall("suite2-suite3", [-3.2, wallH / 2, -3.0], [wallT, wallH, 3.0]),
+    // === SUÍTE PRINCIPAL (16.68 m²) — top right ===
+    obj("cama-casal", [2.5, 0.27, -3.2], 0),
+    obj("criado-mudo", [1.3, 0.48, -2.7], 0),
+    obj("criado-mudo", [3.7, 0.48, -2.7], 0),
+    obj("guarda-roupa", [2.5, 1.1, -4.5], 0),
 
-    // Wall between Suite 03 and BWC (horizontal)
-    wall("suite3-bwc", [-3.5, wallH / 2, -2.0], [2.5, wallH, wallT]),
+    // === SUÍTE 02 (12.73 m²) — top left ===
+    obj("cama-solteiro", [-0.2, 0.22, -3.8], Math.PI / 2),
+    obj("criado-mudo", [0.3, 0.48, -3.2], 0),
+    obj("comoda", [-0.5, 0.4, -1.8], Math.PI),
 
-    // BWC walls
-    wall("bwc-left", [-4.2, wallH / 2, -2.8], [wallT, wallH, 1.6]),
-    wall("bwc-back", [-3.5, wallH / 2, -3.5], [1.5, wallH, wallT]),
+    // === SUÍTE 03 (10.47 m²) — mid left ===
+    obj("cama-solteiro", [-3.0, 0.22, -2.0], 0),
+    obj("criado-mudo", [-2.0, 0.48, -1.5], 0),
+    obj("estante", [-4.0, 1.0, -1.8], Math.PI / 2),
 
-    // Kitchen/dining divider (half wall / peninsula)
-    wall("cozinha-divider", [2.5, 0.45, 0.5], [0.15, 0.9, 2.5]),
-
-    // === LIVING ROOM (29 m²) ===
-    // Sofa
-    obj("sofa-glb", [1.5, 0, 0.5], 0),
-    // Coffee table
-    obj("mesa-centro", [1.5, 0.37, -0.5], 0),
-    // TV + Rack
-    obj("rack-tv", [1.5, 0.37, -1.2], 0),
-    obj("tv", [1.5, 1.0, -1.35], 0),
-    // Armchair
-    obj("poltrona", [-0.5, 0.35, 0], Math.PI / 2),
-
-    // === SALA DE JANTAR (10.45 m²) ===
-    obj("mesa-jantar", [-2.5, 0.72, 1.0], 0),
-    obj("cadeira", [-3.1, 0.43, 0.6], 0),
-    obj("cadeira", [-1.9, 0.43, 0.6], 0),
-    obj("cadeira", [-3.1, 0.43, 1.4], Math.PI),
-    obj("cadeira", [-1.9, 0.43, 1.4], Math.PI),
-    obj("cadeira", [-2.5, 0.43, 0.3], Math.PI / 2),
-    obj("cadeira", [-2.5, 0.43, 1.7], -Math.PI / 2),
-
-    // === COZINHA (behind divider) ===
-    obj("bancada", [3.5, 0.45, 1.5], Math.PI / 2),
-    obj("geladeira", [3.8, 0.9, -0.5], 0),
-    obj("fogao", [3.5, 0.45, 0.3], Math.PI / 2),
-
-    // === SUÍTE PRINCIPAL (16.68 m²) ===
-    obj("cama-casal", [1.5, 0.27, -3.0], 0),
-    obj("criado-mudo", [0.3, 0.48, -2.5], 0),
-    obj("criado-mudo", [2.7, 0.48, -2.5], 0),
-    obj("guarda-roupa", [1.5, 1.1, -4.7], 0),
-
-    // === SUÍTE 02 (12.73 m²) ===
-    obj("cama-solteiro", [-1.8, 0.22, -3.5], Math.PI / 2),
-    obj("criado-mudo", [-1.5, 0.48, -2.8], 0),
-    obj("comoda", [-2.8, 0.4, -2.0], Math.PI),
-
-    // === SUÍTE 03 (10.47 m²) ===
-    obj("cama-solteiro", [-3.8, 0.22, -1.0], 0),
-    obj("criado-mudo", [-3.2, 0.48, -0.5], 0),
-    obj("estante", [-4.3, 1.0, 0.0], Math.PI / 2),
-
-    // === BWC 03 (3.08 m²) ===
-    obj("vaso", [-4.0, 0.22, -3.0], Math.PI),
-    obj("pia-banheiro", [-3.5, 0.42, -2.5], Math.PI / 2),
+    // === BWC 03 (3.08 m²) — top left corner ===
+    obj("vaso", [-3.5, 0.22, -4.0], Math.PI),
+    obj("pia-banheiro", [-2.5, 0.42, -3.5], Math.PI / 2),
   ];
 
   return {
     objects: objects.filter((o): o is PlacedObject => o !== null),
+    walls,
     room: {
       width: 10,
       depth: 10,
@@ -148,7 +143,12 @@ export function createDYardApartment(): {
   };
 }
 
-export const TEMPLATES: { id: string; name: string; description: string; create: () => ReturnType<typeof createDYardApartment> }[] = [
+export const TEMPLATES: {
+  id: string;
+  name: string;
+  description: string;
+  create: () => ReturnType<typeof createDYardApartment>;
+}[] = [
   {
     id: "dyard",
     name: "D-Yard Florianópolis",

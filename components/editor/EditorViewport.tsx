@@ -4,7 +4,7 @@ import { useRef, useEffect, useState, Suspense } from "react";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, TransformControls, Grid, useGLTF } from "@react-three/drei";
 import * as THREE from "three";
-import { PlacedObject, EditorMode, FurniturePart, RoomConfig, SplatConfig } from "./types";
+import { PlacedObject, EditorMode, FurniturePart, RoomConfig, SplatConfig, InternalWall } from "./types";
 import GaussianSplat from "./GaussianSplat";
 
 interface EditorViewportProps {
@@ -17,6 +17,9 @@ interface EditorViewportProps {
   floorColor: string;
   room: RoomConfig;
   splat?: SplatConfig | null;
+  walls: InternalWall[];
+  onSelectWall: (id: string | null) => void;
+  selectedWallId: string | null;
 }
 
 function Room({ wallColor, floorColor, room }: { wallColor: string; floorColor: string; room: RoomConfig }) {
@@ -198,6 +201,44 @@ function SelectedTransform({
   );
 }
 
+function InternalWalls({
+  walls,
+  wallColor,
+  selectedWallId,
+  onSelectWall,
+}: {
+  walls: InternalWall[];
+  wallColor: string;
+  selectedWallId: string | null;
+  onSelectWall: (id: string | null) => void;
+}) {
+  return (
+    <group>
+      {walls.map((w) => (
+        <mesh
+          key={w.id}
+          position={[w.position[0], w.height / 2, w.position[2]]}
+          rotation={[0, w.rotationY, 0]}
+          onClick={(e) => {
+            e.stopPropagation();
+            onSelectWall(w.id);
+          }}
+          castShadow
+          receiveShadow
+        >
+          <boxGeometry args={[w.length, w.height, w.thickness]} />
+          <meshStandardMaterial
+            color={wallColor}
+            roughness={0.9}
+            emissive={selectedWallId === w.id ? "#1a4a8a" : "#000000"}
+            emissiveIntensity={selectedWallId === w.id ? 0.3 : 0}
+          />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
 function Scene(props: EditorViewportProps) {
   const orbitRef = useRef<any>(null);
 
@@ -209,6 +250,14 @@ function Scene(props: EditorViewportProps) {
       <hemisphereLight args={["#b1e1ff", "#b97a20", 0.3]} />
 
       <Room wallColor={props.wallColor} floorColor={props.floorColor} room={props.room} />
+
+      {/* Internal walls */}
+      <InternalWalls
+        walls={props.walls}
+        wallColor={props.wallColor}
+        selectedWallId={props.selectedWallId}
+        onSelectWall={props.onSelectWall}
+      />
 
       {/* Gaussian Splat scene */}
       {props.splat && (

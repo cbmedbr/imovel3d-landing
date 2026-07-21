@@ -49,6 +49,15 @@ export const DEFAULT_ROOM: RoomConfig = {
   showCeiling: false,
 };
 
+export interface InternalWall {
+  id: string;
+  position: [number, number, number];
+  length: number;
+  height: number;
+  thickness: number;
+  rotationY: number; // 0 = along X axis, PI/2 = along Z axis
+}
+
 export interface SplatConfig {
   url: string;
   position: [number, number, number];
@@ -62,6 +71,7 @@ export interface EditorState {
   floorColor: string;
   room?: RoomConfig;
   splat?: SplatConfig | null;
+  walls?: InternalWall[];
 }
 
 // Multi-part furniture (fallback when no .glb)

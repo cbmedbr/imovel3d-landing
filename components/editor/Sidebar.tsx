@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { FURNITURE_CATALOG, FurnitureItem, RoomConfig, SplatConfig } from "./types";
+import { FURNITURE_CATALOG, FurnitureItem, RoomConfig, SplatConfig, InternalWall } from "./types";
 import { TEMPLATES } from "./templates";
 
 interface SidebarProps {
@@ -14,7 +14,12 @@ interface SidebarProps {
   onRoomChange: (room: RoomConfig) => void;
   splat: SplatConfig | null;
   onSplatChange: (splat: SplatConfig | null) => void;
-  onLoadTemplate: (template: { objects: any[]; room: RoomConfig; wallColor: string; floorColor: string }) => void;
+  onLoadTemplate: (template: { objects: any[]; walls?: InternalWall[]; room: RoomConfig; wallColor: string; floorColor: string }) => void;
+  walls: InternalWall[];
+  onAddWall: () => void;
+  onDeleteWall: (id: string) => void;
+  onWallsChange: (walls: InternalWall[]) => void;
+  selectedWallId: string | null;
 }
 
 const wallColors = ["#e8e4df", "#f5f0eb", "#d4cfc7", "#c9d6df", "#d5c4a1", "#bfc9c3", "#e8d5d5", "#ffffff"];
@@ -29,6 +34,7 @@ export default function Sidebar({
   room, onRoomChange,
   splat, onSplatChange,
   onLoadTemplate,
+  walls, onAddWall, onDeleteWall, onWallsChange, selectedWallId,
 }: SidebarProps) {
   const [activeTab, setActiveTab] = useState<Tab>("moveis");
   const [expandedCategory, setExpandedCategory] = useState<string | null>("Sala de Estar");
@@ -190,6 +196,122 @@ export default function Sidebar({
                   </button>
                 ))}
               </div>
+            </div>
+
+            {/* Internal Walls */}
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-medium">Paredes Internas</h3>
+                <button
+                  onClick={onAddWall}
+                  className="px-2 py-1 rounded bg-blue-500 hover:bg-blue-600 text-xs font-medium transition-colors"
+                >
+                  + Parede
+                </button>
+              </div>
+              {walls.length === 0 ? (
+                <p className="text-xs text-slate-500">Nenhuma parede interna. Clique + para adicionar.</p>
+              ) : (
+                <div className="space-y-2 max-h-48 overflow-y-auto">
+                  {walls.map((w, i) => (
+                    <div
+                      key={w.id}
+                      className={`p-2 rounded-lg text-xs border transition-colors ${
+                        selectedWallId === w.id
+                          ? "bg-blue-500/20 border-blue-500/50"
+                          : "bg-slate-700/50 border-transparent"
+                      }`}
+                    >
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="font-medium">Parede {i + 1}</span>
+                        <button
+                          onClick={() => onDeleteWall(w.id)}
+                          className="text-red-400 hover:text-red-300 text-xs"
+                        >
+                          Remover
+                        </button>
+                      </div>
+                      <div className="space-y-1">
+                        <div className="flex justify-between text-slate-400">
+                          <span>Comprimento</span>
+                          <span>{w.length.toFixed(1)}m</span>
+                        </div>
+                        <input
+                          type="range" min={0.5} max={15} step={0.1}
+                          value={w.length}
+                          onChange={(e) => {
+                            const updated = walls.map((ww) =>
+                              ww.id === w.id ? { ...ww, length: parseFloat(e.target.value) } : ww
+                            );
+                            onWallsChange(updated);
+                          }}
+                          className="w-full"
+                        />
+                        <div className="flex justify-between text-slate-400">
+                          <span>Posição X</span>
+                          <span>{w.position[0].toFixed(1)}m</span>
+                        </div>
+                        <input
+                          type="range" min={-10} max={10} step={0.1}
+                          value={w.position[0]}
+                          onChange={(e) => {
+                            const x = parseFloat(e.target.value);
+                            const updated = walls.map((ww) =>
+                              ww.id === w.id ? { ...ww, position: [x, ww.position[1], ww.position[2]] as [number, number, number] } : ww
+                            );
+                            onWallsChange(updated);
+                          }}
+                          className="w-full"
+                        />
+                        <div className="flex justify-between text-slate-400">
+                          <span>Posição Z</span>
+                          <span>{w.position[2].toFixed(1)}m</span>
+                        </div>
+                        <input
+                          type="range" min={-10} max={10} step={0.1}
+                          value={w.position[2]}
+                          onChange={(e) => {
+                            const z = parseFloat(e.target.value);
+                            const updated = walls.map((ww) =>
+                              ww.id === w.id ? { ...ww, position: [ww.position[0], ww.position[1], z] as [number, number, number] } : ww
+                            );
+                            onWallsChange(updated);
+                          }}
+                          className="w-full"
+                        />
+                        <div className="flex gap-2 mt-1">
+                          <button
+                            onClick={() => {
+                              const updated = walls.map((ww) =>
+                                ww.id === w.id ? { ...ww, rotationY: 0 } : ww
+                              );
+                              onWallsChange(updated);
+                            }}
+                            className={`flex-1 py-1 rounded text-xs ${
+                              Math.abs(w.rotationY) < 0.1 ? "bg-blue-500 text-white" : "bg-slate-600 text-slate-300"
+                            }`}
+                          >
+                            Horizontal
+                          </button>
+                          <button
+                            onClick={() => {
+                              const updated = walls.map((ww) =>
+                                ww.id === w.id ? { ...ww, rotationY: Math.PI / 2 } : ww
+                              );
+                              onWallsChange(updated);
+                            }}
+                            className={`flex-1 py-1 rounded text-xs ${
+                              Math.abs(w.rotationY - Math.PI / 2) < 0.1 ? "bg-blue-500 text-white" : "bg-slate-600 text-slate-300"
+                            }`}
+                          >
+                            Vertical
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Dimensions */}

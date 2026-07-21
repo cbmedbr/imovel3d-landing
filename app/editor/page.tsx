@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import EditorViewport from "@/components/editor/EditorViewport";
 import Sidebar from "@/components/editor/Sidebar";
 import Toolbar from "@/components/editor/Toolbar";
-import { FurnitureItem, PlacedObject, EditorMode, EditorState, RoomConfig, SplatConfig, DEFAULT_ROOM } from "@/components/editor/types";
+import { FurnitureItem, PlacedObject, EditorMode, EditorState, RoomConfig, SplatConfig, InternalWall, DEFAULT_ROOM } from "@/components/editor/types";
 import { useHistory } from "@/components/editor/useHistory";
 
 const STORAGE_KEY = "imovel3d_project";
@@ -34,12 +34,14 @@ export default function EditorPage() {
   const [floorColor, setFloorColor] = useState(saved?.floorColor ?? "#c4b8a8");
   const [room, setRoom] = useState<RoomConfig>(saved?.room ?? DEFAULT_ROOM);
   const [splat, setSplat] = useState<SplatConfig | null>(saved?.splat ?? null);
+  const [walls, setWalls] = useState<InternalWall[]>(saved?.walls ?? []);
+  const [selectedWallId, setSelectedWallId] = useState<string | null>(null);
   const [showSaved, setShowSaved] = useState(false);
 
   // Auto-save on changes
   useEffect(() => {
-    saveProject({ objects: history.state, wallColor, floorColor, room, splat });
-  }, [history.state, wallColor, floorColor, room, splat]);
+    saveProject({ objects: history.state, wallColor, floorColor, room, splat, walls });
+  }, [history.state, wallColor, floorColor, room, splat, walls]);
 
   const handleAddFurniture = useCallback((item: FurnitureItem) => {
     const newObj: PlacedObject = {
@@ -64,10 +66,34 @@ export default function EditorPage() {
   }, [history]);
 
   const handleDeleteSelected = useCallback(() => {
+    if (selectedWallId) {
+      setWalls((prev) => prev.filter((w) => w.id !== selectedWallId));
+      setSelectedWallId(null);
+      return;
+    }
     if (!selectedId) return;
     history.set(history.state.filter((obj) => obj.id !== selectedId));
     setSelectedId(null);
-  }, [selectedId, history]);
+  }, [selectedId, selectedWallId, history]);
+
+  const handleAddWall = useCallback(() => {
+    const newWall: InternalWall = {
+      id: `iw_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      position: [0, 0, 0],
+      length: 3,
+      height: room.height,
+      thickness: 0.12,
+      rotationY: 0,
+    };
+    setWalls((prev) => [...prev, newWall]);
+    setSelectedWallId(newWall.id);
+    setSelectedId(null);
+  }, [room.height]);
+
+  const handleDeleteWall = useCallback((id: string) => {
+    setWalls((prev) => prev.filter((w) => w.id !== id));
+    if (selectedWallId === id) setSelectedWallId(null);
+  }, [selectedWallId]);
 
   const handleDuplicate = useCallback(() => {
     const obj = history.state.find((o) => o.id === selectedId);
@@ -82,7 +108,7 @@ export default function EditorPage() {
   }, [selectedId, history]);
 
   const handleSave = useCallback(() => {
-    saveProject({ objects: history.state, wallColor, floorColor, room, splat });
+    saveProject({ objects: history.state, wallColor, floorColor, room, splat, walls });
     setShowSaved(true);
     setTimeout(() => setShowSaved(false), 2000);
   }, [history.state, wallColor, floorColor]);
@@ -94,15 +120,18 @@ export default function EditorPage() {
 
   const handleLoadTemplate = useCallback((template: {
     objects: PlacedObject[];
+    walls?: InternalWall[];
     room: RoomConfig;
     wallColor: string;
     floorColor: string;
   }) => {
     history.set(template.objects);
+    setWalls(template.walls ?? []);
     setRoom(template.room);
     setWallColor(template.wallColor);
     setFloorColor(template.floorColor);
     setSelectedId(null);
+    setSelectedWallId(null);
   }, [history]);
 
   const handleRotate90 = useCallback((direction: "left" | "right" | "up" | "down") => {
@@ -250,6 +279,11 @@ export default function EditorPage() {
         splat={splat}
         onSplatChange={setSplat}
         onLoadTemplate={handleLoadTemplate}
+        walls={walls}
+        onAddWall={handleAddWall}
+        onDeleteWall={handleDeleteWall}
+        onWallsChange={setWalls}
+        selectedWallId={selectedWallId}
       />
 
       <div className="flex-1 flex flex-col">
@@ -274,13 +308,16 @@ export default function EditorPage() {
           <EditorViewport
             placedObjects={history.state}
             selectedId={selectedId}
-            onSelect={setSelectedId}
+            onSelect={(id) => { setSelectedId(id); if (id) setSelectedWallId(null); }}
             onUpdateObject={handleUpdateObject}
             mode={mode}
             wallColor={wallColor}
             floorColor={floorColor}
             room={room}
             splat={splat}
+            walls={walls}
+            onSelectWall={setSelectedWallId}
+            selectedWallId={selectedWallId}
           />
 
           {/* Saved toast */}
