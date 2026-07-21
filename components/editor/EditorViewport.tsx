@@ -4,7 +4,8 @@ import { useRef, useEffect, useState, Suspense } from "react";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, TransformControls, Grid, useGLTF } from "@react-three/drei";
 import * as THREE from "three";
-import { PlacedObject, EditorMode, FurniturePart, RoomConfig } from "./types";
+import { PlacedObject, EditorMode, FurniturePart, RoomConfig, SplatConfig } from "./types";
+import GaussianSplat from "./GaussianSplat";
 
 interface EditorViewportProps {
   placedObjects: PlacedObject[];
@@ -15,6 +16,7 @@ interface EditorViewportProps {
   wallColor: string;
   floorColor: string;
   room: RoomConfig;
+  splat?: SplatConfig | null;
 }
 
 function Room({ wallColor, floorColor, room }: { wallColor: string; floorColor: string; room: RoomConfig }) {
@@ -207,6 +209,18 @@ function Scene(props: EditorViewportProps) {
       <hemisphereLight args={["#b1e1ff", "#b97a20", 0.3]} />
 
       <Room wallColor={props.wallColor} floorColor={props.floorColor} room={props.room} />
+
+      {/* Gaussian Splat scene */}
+      {props.splat && (
+        <Suspense fallback={null}>
+          <GaussianSplat
+            url={props.splat.url}
+            position={props.splat.position}
+            rotation={props.splat.rotation}
+            scale={props.splat.scale}
+          />
+        </Suspense>
+      )}
 
       <Grid
         args={[20, 20]}

@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import EditorViewport from "@/components/editor/EditorViewport";
 import Sidebar from "@/components/editor/Sidebar";
 import Toolbar from "@/components/editor/Toolbar";
-import { FurnitureItem, PlacedObject, EditorMode, EditorState, RoomConfig, DEFAULT_ROOM } from "@/components/editor/types";
+import { FurnitureItem, PlacedObject, EditorMode, EditorState, RoomConfig, SplatConfig, DEFAULT_ROOM } from "@/components/editor/types";
 import { useHistory } from "@/components/editor/useHistory";
 
 const STORAGE_KEY = "imovel3d_project";
@@ -33,12 +33,13 @@ export default function EditorPage() {
   const [wallColor, setWallColor] = useState(saved?.wallColor ?? "#e8e4df");
   const [floorColor, setFloorColor] = useState(saved?.floorColor ?? "#c4b8a8");
   const [room, setRoom] = useState<RoomConfig>(saved?.room ?? DEFAULT_ROOM);
+  const [splat, setSplat] = useState<SplatConfig | null>(saved?.splat ?? null);
   const [showSaved, setShowSaved] = useState(false);
 
   // Auto-save on changes
   useEffect(() => {
-    saveProject({ objects: history.state, wallColor, floorColor, room });
-  }, [history.state, wallColor, floorColor, room]);
+    saveProject({ objects: history.state, wallColor, floorColor, room, splat });
+  }, [history.state, wallColor, floorColor, room, splat]);
 
   const handleAddFurniture = useCallback((item: FurnitureItem) => {
     const newObj: PlacedObject = {
@@ -81,7 +82,7 @@ export default function EditorPage() {
   }, [selectedId, history]);
 
   const handleSave = useCallback(() => {
-    saveProject({ objects: history.state, wallColor, floorColor, room });
+    saveProject({ objects: history.state, wallColor, floorColor, room, splat });
     setShowSaved(true);
     setTimeout(() => setShowSaved(false), 2000);
   }, [history.state, wallColor, floorColor]);
@@ -233,6 +234,8 @@ export default function EditorPage() {
         onFloorColorChange={setFloorColor}
         room={room}
         onRoomChange={setRoom}
+        splat={splat}
+        onSplatChange={setSplat}
       />
 
       <div className="flex-1 flex flex-col">
@@ -263,6 +266,7 @@ export default function EditorPage() {
             wallColor={wallColor}
             floorColor={floorColor}
             room={room}
+            splat={splat}
           />
 
           {/* Saved toast */}

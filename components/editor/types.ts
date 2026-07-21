@@ -49,11 +49,19 @@ export const DEFAULT_ROOM: RoomConfig = {
   showCeiling: false,
 };
 
+export interface SplatConfig {
+  url: string;
+  position: [number, number, number];
+  rotation: [number, number, number, number];
+  scale: [number, number, number];
+}
+
 export interface EditorState {
   objects: PlacedObject[];
   wallColor: string;
   floorColor: string;
   room?: RoomConfig;
+  splat?: SplatConfig | null;
 }
 
 // Multi-part furniture (fallback when no .glb)

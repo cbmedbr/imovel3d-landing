@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { FURNITURE_CATALOG, FurnitureItem, RoomConfig } from "./types";
+import { FURNITURE_CATALOG, FurnitureItem, RoomConfig, SplatConfig } from "./types";
 
 interface SidebarProps {
   onAddFurniture: (item: FurnitureItem) => void;
@@ -11,6 +11,8 @@ interface SidebarProps {
   onFloorColorChange: (color: string) => void;
   room: RoomConfig;
   onRoomChange: (room: RoomConfig) => void;
+  splat: SplatConfig | null;
+  onSplatChange: (splat: SplatConfig | null) => void;
 }
 
 const wallColors = ["#e8e4df", "#f5f0eb", "#d4cfc7", "#c9d6df", "#d5c4a1", "#bfc9c3", "#e8d5d5", "#ffffff"];
@@ -23,6 +25,7 @@ export default function Sidebar({
   wallColor, onWallColorChange,
   floorColor, onFloorColorChange,
   room, onRoomChange,
+  splat, onSplatChange,
 }: SidebarProps) {
   const [activeTab, setActiveTab] = useState<Tab>("moveis");
   const [expandedCategory, setExpandedCategory] = useState<string | null>("Sala de Estar");
@@ -257,6 +260,108 @@ export default function Sidebar({
               <div className="text-lg font-bold text-white">
                 {(room.width * room.depth).toFixed(1)} m²
               </div>
+            </div>
+
+            {/* Gaussian Splat */}
+            <div>
+              <h3 className="text-sm font-medium mb-3">Scan 3D do Imóvel</h3>
+              <p className="text-xs text-slate-400 mb-3">
+                Carregue um arquivo .splat ou .ply para visualizar o imóvel real em 3D.
+              </p>
+
+              {splat ? (
+                <div className="space-y-3">
+                  <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/30">
+                    <div className="text-xs text-green-400 font-medium">Scan carregado</div>
+                    <div className="text-xs text-slate-400 mt-1 truncate">{splat.url}</div>
+                  </div>
+
+                  <div>
+                    <label className="text-xs text-slate-400 flex justify-between">
+                      <span>Escala</span>
+                      <span>{splat.scale[0].toFixed(1)}x</span>
+                    </label>
+                    <input
+                      type="range"
+                      min={0.1}
+                      max={5}
+                      step={0.1}
+                      value={splat.scale[0]}
+                      onChange={(e) => {
+                        const s = parseFloat(e.target.value);
+                        onSplatChange({ ...splat, scale: [s, s, s] });
+                      }}
+                      className="w-full mt-1"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs text-slate-400 flex justify-between">
+                      <span>Altura (Y)</span>
+                      <span>{splat.position[1].toFixed(1)}m</span>
+                    </label>
+                    <input
+                      type="range"
+                      min={-3}
+                      max={5}
+                      step={0.1}
+                      value={splat.position[1]}
+                      onChange={(e) => {
+                        const y = parseFloat(e.target.value);
+                        onSplatChange({ ...splat, position: [splat.position[0], y, splat.position[2]] });
+                      }}
+                      className="w-full mt-1"
+                    />
+                  </div>
+
+                  <button
+                    onClick={() => onSplatChange(null)}
+                    className="w-full py-2 rounded-lg bg-red-500/20 text-red-400 text-sm hover:bg-red-500/30 transition-colors"
+                  >
+                    Remover Scan
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <button
+                    onClick={() => {
+                      onSplatChange({
+                        url: "https://huggingface.co/cakewalk/splat-data/resolve/main/nike.splat",
+                        position: [0, 0, 0],
+                        rotation: [0, 0, 0, 1],
+                        scale: [1, 1, 1],
+                      });
+                    }}
+                    className="w-full py-2 rounded-lg bg-blue-500/20 text-blue-400 text-sm hover:bg-blue-500/30 transition-colors"
+                  >
+                    Carregar Demo (Teste)
+                  </button>
+
+                  <div className="relative">
+                    <input
+                      type="text"
+                      placeholder="Cole URL do .splat ou .ply"
+                      className="w-full px-3 py-2 rounded-lg bg-slate-700 text-sm text-white placeholder-slate-500 border border-slate-600 focus:border-blue-500 focus:outline-none"
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          const url = (e.target as HTMLInputElement).value.trim();
+                          if (url) {
+                            onSplatChange({
+                              url,
+                              position: [0, 0, 0],
+                              rotation: [0, 0, 0, 1],
+                              scale: [1, 1, 1],
+                            });
+                          }
+                        }
+                      }}
+                    />
+                    <p className="text-xs text-slate-500 mt-1">
+                      Pressione Enter para carregar
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}
