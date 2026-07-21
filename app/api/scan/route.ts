@@ -1,34 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
 
-// Replicate model for Gaussian Splatting from images
-// Using a splat generation model
-const REPLICATE_MODEL_VERSION = "a]"; // Will be set when we find the right model
+// Trellis — powerful image-to-3D model (generates .glb + .ply)
+const MODEL_VERSION = "e8f6c45206993f297372f5436b90350817bd9b4a0d52d2a76df50c1c8afa2b3c";
 
 export async function POST(req: NextRequest) {
   const apiToken = process.env.REPLICATE_API_TOKEN;
 
   try {
     const body = await req.json();
-    const { images, totalImages } = body;
+    const { images } = body;
 
     if (!images || images.length === 0) {
       return NextResponse.json({ error: "Nenhuma imagem enviada" }, { status: 400 });
     }
 
-    // If no API token, return demo mode with a sample splat
     if (!apiToken) {
       return NextResponse.json({
         status: "demo",
-        message: "Modo demo — REPLICATE_API_TOKEN não configurado. Usando scan de exemplo.",
-        // Demo: using a GLB model since splats need GPU
-        splatUrl: "demo-glb",
-        glbUrl: "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/main/Models/GlamVelvetSofa/glTF-Binary/GlamVelvetSofa.glb",
+        error: "REPLICATE_API_TOKEN não configurado.",
       });
     }
 
-    // Start Replicate prediction
-    // For now, using TripoSR (single image to 3D) as a starting point
-    // In production, use a proper multi-image gaussian splatting model
+    // Start Replicate prediction with Trellis model
     const res = await fetch("https://api.replicate.com/v1/predictions", {
       method: "POST",
       headers: {
@@ -36,17 +29,23 @@ export async function POST(req: NextRequest) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        version: "625ce945c5eb59e5637ccdb52702c8d8ddb264f0fac6e38185ebc21bde004c57",
+        version: MODEL_VERSION,
         input: {
-          image: images[0],
-          output_format: "glb",
+          images: images.slice(0, 4), // Trellis accepts up to 4 images
+          generate_model: true,
+          generate_color: true,
+          mesh_simplify: 0.95,
+          texture_size: 1024,
         },
       }),
     });
 
     if (!res.ok) {
       const err = await res.text();
-      return NextResponse.json({ error: `Replicate: ${err}` }, { status: res.status });
+      return NextResponse.json(
+        { error: `Replicate: ${err}` },
+        { status: res.status }
+      );
     }
 
     const prediction = await res.json();

@@ -61,15 +61,18 @@ export default function ScanPage() {
         });
       };
 
-      const imageData = await resizeImage(files[0]);
-      setProgress("Processando scan 3D... Isso pode levar 1-2 minutos.");
+      setProgress("Preparando fotos...");
+      // Resize up to 4 images
+      const imagesToSend = files.slice(0, 4);
+      const resizedImages = await Promise.all(imagesToSend.map(resizeImage));
+
+      setProgress("Enviando para processamento 3D...");
 
       const res = await fetch("/api/scan", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          images: [imageData],
-          totalImages: files.length,
+          images: resizedImages,
         }),
       });
 
@@ -100,9 +103,17 @@ export default function ScanPage() {
         const statusData = await statusRes.json();
 
         if (statusData.status === "succeeded") {
-          const outputUrl = Array.isArray(statusData.output)
-            ? statusData.output.find((u: string) => u.endsWith(".glb") || u.endsWith(".obj")) || statusData.output[0]
-            : statusData.output;
+          let outputUrl = "";
+          const out = statusData.output;
+          if (typeof out === "string") {
+            outputUrl = out;
+          } else if (out?.model_file) {
+            outputUrl = out.model_file;
+          } else if (out?.gaussian_ply) {
+            outputUrl = out.gaussian_ply;
+          } else if (Array.isArray(out)) {
+            outputUrl = out.find((u: string) => u.endsWith(".glb")) || out[0];
+          }
           setResultUrl(outputUrl);
           setStatus("done");
           setProgress("");
