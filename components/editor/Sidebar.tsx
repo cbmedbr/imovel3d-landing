@@ -580,9 +580,9 @@ export default function Sidebar({
                   <div className="p-3 rounded-lg bg-slate-700/30 space-y-1">
                     <div className="text-xs font-medium text-slate-300">Como gerar o scan 3D:</div>
                     <ol className="text-xs text-slate-500 space-y-1 list-decimal list-inside">
-                      <li>Baixe o app <strong className="text-slate-400">Polycam</strong> (grátis)</li>
+                      <li>Baixe o app <strong className="text-slate-400">Luma AI</strong> (grátis, iOS)</li>
                       <li>Escaneie o imóvel com a câmera</li>
-                      <li>Exporte como <strong className="text-slate-400">.ply</strong></li>
+                      <li>Exporte como <strong className="text-slate-400">.ply</strong> ou <strong className="text-slate-400">.splat</strong></li>
                       <li>Arraste o arquivo aqui</li>
                     </ol>
                   </div>
