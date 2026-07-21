@@ -20,6 +20,7 @@ interface EditorViewportProps {
   walls: InternalWall[];
   onSelectWall: (id: string | null) => void;
   selectedWallId: string | null;
+  onUpdateWall: (id: string, position: [number, number, number]) => void;
 }
 
 function Room({ wallColor, floorColor, room }: { wallColor: string; floorColor: string; room: RoomConfig }) {
@@ -201,41 +202,86 @@ function SelectedTransform({
   );
 }
 
-function InternalWalls({
-  walls,
+function WallMesh({
+  wall,
   wallColor,
-  selectedWallId,
-  onSelectWall,
+  isSelected,
+  onSelect,
 }: {
-  walls: InternalWall[];
+  wall: InternalWall;
   wallColor: string;
-  selectedWallId: string | null;
-  onSelectWall: (id: string | null) => void;
+  isSelected: boolean;
+  onSelect: () => void;
 }) {
+  const meshRef = useRef<THREE.Mesh>(null);
+
   return (
-    <group>
-      {walls.map((w) => (
-        <mesh
-          key={w.id}
-          position={[w.position[0], w.height / 2, w.position[2]]}
-          rotation={[0, w.rotationY, 0]}
-          onClick={(e) => {
-            e.stopPropagation();
-            onSelectWall(w.id);
-          }}
-          castShadow
-          receiveShadow
-        >
-          <boxGeometry args={[w.length, w.height, w.thickness]} />
-          <meshStandardMaterial
-            color={wallColor}
-            roughness={0.9}
-            emissive={selectedWallId === w.id ? "#1a4a8a" : "#000000"}
-            emissiveIntensity={selectedWallId === w.id ? 0.3 : 0}
-          />
-        </mesh>
-      ))}
-    </group>
+    <mesh
+      ref={meshRef}
+      position={[wall.position[0], wall.height / 2, wall.position[2]]}
+      rotation={[0, wall.rotationY, 0]}
+      onClick={(e) => {
+        e.stopPropagation();
+        onSelect();
+      }}
+      castShadow
+      receiveShadow
+    >
+      <boxGeometry args={[wall.length, wall.height, wall.thickness]} />
+      <meshStandardMaterial
+        color={wallColor}
+        roughness={0.9}
+        emissive={isSelected ? "#1a4a8a" : "#000000"}
+        emissiveIntensity={isSelected ? 0.3 : 0}
+      />
+    </mesh>
+  );
+}
+
+function WallTransform({
+  wall,
+  onUpdateWall,
+  orbitRef,
+}: {
+  wall: InternalWall;
+  onUpdateWall: (id: string, position: [number, number, number]) => void;
+  orbitRef: React.RefObject<any>;
+}) {
+  const transformRef = useRef<any>(null);
+
+  useEffect(() => {
+    const controls = transformRef.current;
+    if (!controls) return;
+
+    const onDragging = (event: { value: boolean }) => {
+      if (orbitRef.current) orbitRef.current.enabled = !event.value;
+    };
+
+    controls.addEventListener("dragging-changed", onDragging);
+    return () => controls.removeEventListener("dragging-changed", onDragging);
+  }, [orbitRef]);
+
+  useEffect(() => {
+    const controls = transformRef.current;
+    if (!controls) return;
+
+    const onObjectChange = () => {
+      const obj = controls.object;
+      if (!obj) return;
+      onUpdateWall(wall.id, [obj.position.x, 0, obj.position.z]);
+    };
+
+    controls.addEventListener("objectChange", onObjectChange);
+    return () => controls.removeEventListener("objectChange", onObjectChange);
+  }, [wall.id, onUpdateWall]);
+
+  return (
+    <TransformControls
+      ref={transformRef}
+      mode="translate"
+      position={[wall.position[0], wall.height / 2, wall.position[2]]}
+      showY={false}
+    />
   );
 }
 
@@ -252,12 +298,24 @@ function Scene(props: EditorViewportProps) {
       <Room wallColor={props.wallColor} floorColor={props.floorColor} room={props.room} />
 
       {/* Internal walls */}
-      <InternalWalls
-        walls={props.walls}
-        wallColor={props.wallColor}
-        selectedWallId={props.selectedWallId}
-        onSelectWall={props.onSelectWall}
-      />
+      {props.walls.map((w) => (
+        <WallMesh
+          key={w.id}
+          wall={w}
+          wallColor={props.wallColor}
+          isSelected={props.selectedWallId === w.id}
+          onSelect={() => props.onSelectWall(w.id)}
+        />
+      ))}
+
+      {/* Transform controls for selected wall */}
+      {props.selectedWallId && props.walls.find((w) => w.id === props.selectedWallId) && (
+        <WallTransform
+          wall={props.walls.find((w) => w.id === props.selectedWallId)!}
+          onUpdateWall={props.onUpdateWall}
+          orbitRef={orbitRef}
+        />
+      )}
 
       {/* Gaussian Splat scene */}
       {props.splat && (

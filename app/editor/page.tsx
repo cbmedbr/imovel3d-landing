@@ -95,6 +95,12 @@ export default function EditorPage() {
     if (selectedWallId === id) setSelectedWallId(null);
   }, [selectedWallId]);
 
+  const handleUpdateWall = useCallback((id: string, position: [number, number, number]) => {
+    setWalls((prev) =>
+      prev.map((w) => (w.id === id ? { ...w, position } : w))
+    );
+  }, []);
+
   const handleDuplicate = useCallback(() => {
     const obj = history.state.find((o) => o.id === selectedId);
     if (!obj) return;
@@ -325,8 +331,9 @@ export default function EditorPage() {
             room={room}
             splat={splat}
             walls={walls}
-            onSelectWall={setSelectedWallId}
+            onSelectWall={(id) => { setSelectedWallId(id); if (id) setSelectedId(null); }}
             selectedWallId={selectedWallId}
+            onUpdateWall={handleUpdateWall}
           />
 
           {/* Saved toast */}
