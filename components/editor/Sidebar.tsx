@@ -1,8 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { FURNITURE_CATALOG, FurnitureItem, RoomConfig, SplatConfig, InternalWall } from "./types";
 import { TEMPLATES } from "./templates";
+import PhotoTo3D from "./PhotoTo3D";
+import CloudProjects from "./CloudProjects";
+import AuthModal from "./AuthModal";
+import { supabase } from "@/lib/supabase";
+import type { User } from "@supabase/supabase-js";
 
 interface SidebarProps {
   onAddFurniture: (item: FurnitureItem) => void;
@@ -15,6 +20,7 @@ interface SidebarProps {
   splat: SplatConfig | null;
   onSplatChange: (splat: SplatConfig | null) => void;
   onLoadTemplate: (template: { objects: any[]; walls?: InternalWall[]; room: RoomConfig; wallColor: string; floorColor: string }) => void;
+  onGetCurrentState: () => any;
   walls: InternalWall[];
   onAddWall: () => void;
   onDeleteWall: (id: string) => void;
@@ -35,9 +41,20 @@ export default function Sidebar({
   splat, onSplatChange,
   onLoadTemplate,
   walls, onAddWall, onDeleteWall, onWallsChange, selectedWallId,
+  onGetCurrentState,
 }: SidebarProps) {
   const [activeTab, setActiveTab] = useState<Tab>("moveis");
   const [expandedCategory, setExpandedCategory] = useState<string | null>("Sala de Estar");
+  const [user, setUser] = useState<User | null>(null);
+  const [showAuth, setShowAuth] = useState(false);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => setUser(data.user));
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
 
   const updateRoom = (key: keyof RoomConfig, value: number | boolean) => {
     onRoomChange({ ...room, [key]: value });
@@ -80,6 +97,13 @@ export default function Sidebar({
       <div className="flex-1 overflow-y-auto">
         {activeTab === "moveis" && (
           <div className="p-2">
+            {/* Photo to 3D */}
+            <div className="p-3 mb-2">
+              <PhotoTo3D onModelReady={onAddFurniture} />
+            </div>
+
+            <div className="border-t border-slate-700 my-2" />
+
             {Object.entries(FURNITURE_CATALOG).map(([category, items]) => (
               <div key={category} className="mb-1">
                 <button
@@ -511,12 +535,33 @@ export default function Sidebar({
         )}
       </div>
 
-      {/* Footer */}
-      <div className="p-3 border-t border-slate-700 text-xs text-slate-500 text-center">
-        {activeTab === "moveis" && "Clique num móvel para adicionar à cena"}
-        {activeTab === "materiais" && "Escolha cores para paredes e piso"}
-        {activeTab === "sala" && "Ajuste dimensões e visibilidade"}
+      {/* Cloud Projects / Auth */}
+      <div className="border-t border-slate-700 p-3">
+        {user ? (
+          <CloudProjects
+            user={user}
+            onLoad={onLoadTemplate}
+            onGetCurrentState={onGetCurrentState}
+          />
+        ) : (
+          <button
+            onClick={() => setShowAuth(true)}
+            className="w-full py-2 rounded-lg bg-blue-500/20 text-blue-400 text-sm hover:bg-blue-500/30 transition-colors"
+          >
+            Entrar para salvar na nuvem
+          </button>
+        )}
+        {user && (
+          <button
+            onClick={() => supabase.auth.signOut()}
+            className="w-full mt-2 py-1.5 rounded-lg text-xs text-slate-500 hover:text-white hover:bg-slate-700 transition-colors"
+          >
+            Sair ({user.email})
+          </button>
+        )}
       </div>
+
+      {showAuth && <AuthModal onClose={() => setShowAuth(false)} onAuth={() => {}} />}
     </div>
   );
 }

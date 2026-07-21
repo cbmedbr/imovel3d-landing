@@ -284,6 +284,14 @@ export default function EditorPage() {
         onDeleteWall={handleDeleteWall}
         onWallsChange={setWalls}
         selectedWallId={selectedWallId}
+        onGetCurrentState={() => ({
+          objects: history.state,
+          wallColor,
+          floorColor,
+          room,
+          splat,
+          walls,
+        })}
       />
 
       <div className="flex-1 flex flex-col">

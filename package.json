@@ -12,6 +12,7 @@
     "@mkkellogg/gaussian-splats-3d": "^0.4.7",
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.6.1",
+    "@supabase/supabase-js": "^2.110.8",
     "@types/three": "^0.185.1",
     "framer-motion": "^12.42.2",
     "next": "16.2.10",
