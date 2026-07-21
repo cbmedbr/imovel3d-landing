@@ -66,11 +66,11 @@ export default function ScanPage() {
         }
 
         if (data.status === "demo") {
-          // Demo mode — no API key, use GLB fallback
-          const viewerUrl = data.glbUrl || data.splatUrl;
-          setResultUrl(viewerUrl);
-          setStatus("done");
-          setProgress("");
+          setStatus("error");
+          setError(
+            "O processamento 3D requer a API key do Replicate (REPLICATE_API_TOKEN). " +
+            "Crie uma conta gratuita em replicate.com e adicione o token no .env.local para ativar o processamento real das fotos."
+          );
           return;
         }
 
