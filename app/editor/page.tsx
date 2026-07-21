@@ -90,15 +90,16 @@ export default function EditorPage() {
     setSelectedId(null);
   }, [history]);
 
-  const handleRotate90 = useCallback((direction: "left" | "right") => {
+  const handleRotate90 = useCallback((direction: "left" | "right" | "up" | "down") => {
     const obj = history.state.find((o) => o.id === selectedId);
     if (!obj) return;
-    const angle = direction === "left" ? Math.PI / 2 : -Math.PI / 2;
-    const newRotation: [number, number, number] = [
-      obj.rotation[0],
-      obj.rotation[1] + angle,
-      obj.rotation[2],
-    ];
+    const angle = (direction === "left" || direction === "up") ? Math.PI / 2 : -Math.PI / 2;
+    const newRotation: [number, number, number] = [...obj.rotation];
+    if (direction === "left" || direction === "right") {
+      newRotation[1] += angle;
+    } else {
+      newRotation[0] += angle;
+    }
     history.set(
       history.state.map((o) => (o.id === selectedId ? { ...o, rotation: newRotation } : o))
     );
@@ -169,6 +170,10 @@ export default function EditorPage() {
         handleRotate90("left");
       } else if (e.key === "e" || e.key === "E") {
         handleRotate90("right");
+      } else if (e.key === "w" || e.key === "W") {
+        handleRotate90("up");
+      } else if (e.key === "x" || e.key === "X") {
+        handleRotate90("down");
       } else if (e.key === "Escape") {
         setSelectedId(null);
       }
@@ -225,7 +230,7 @@ export default function EditorPage() {
           {/* Help */}
           <div className="absolute bottom-4 left-4 text-xs text-slate-500 space-y-1">
             <div>G = Mover | R = Rotacionar | S = Escalar</div>
-            <div>Q = Girar 90° ← | E = Girar 90° →</div>
+            <div>Q/E = Girar ←→ | W/X = Girar ↑↓</div>
             <div>Ctrl+D = Duplicar | Del = Deletar | Esc = Deselecionar</div>
             <div>Ctrl+Z = Desfazer | Ctrl+Shift+Z = Refazer</div>
           </div>

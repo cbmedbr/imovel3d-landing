@@ -15,7 +15,7 @@ interface ToolbarProps {
   onSave: () => void;
   onClear: () => void;
   onSnap: (target: SnapTarget) => void;
-  onRotate90: (direction: "left" | "right") => void;
+  onRotate90: (direction: "left" | "right" | "up" | "down") => void;
   hasSelection: boolean;
   objectCount: number;
 }
@@ -117,6 +117,26 @@ export default function Toolbar({
           title="Girar 90° direita (E)"
         >
           ↷ 90°
+        </button>
+        <button
+          onClick={() => onRotate90("up")}
+          disabled={!hasSelection}
+          className={`px-2 py-1.5 rounded-md text-sm transition-colors ${
+            hasSelection ? "text-slate-300 hover:bg-slate-700" : "text-slate-600 cursor-not-allowed"
+          }`}
+          title="Girar 90° pra cima (W)"
+        >
+          ↑ 90°
+        </button>
+        <button
+          onClick={() => onRotate90("down")}
+          disabled={!hasSelection}
+          className={`px-2 py-1.5 rounded-md text-sm transition-colors ${
+            hasSelection ? "text-slate-300 hover:bg-slate-700" : "text-slate-600 cursor-not-allowed"
+          }`}
+          title="Girar 90° pra baixo (X)"
+        >
+          ↓ 90°
         </button>
 
         <div className="w-px h-6 bg-slate-700 mx-2" />
