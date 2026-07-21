@@ -92,6 +92,19 @@ export default function EditorPage() {
     setSelectedId(null);
   }, [history]);
 
+  const handleLoadTemplate = useCallback((template: {
+    objects: PlacedObject[];
+    room: RoomConfig;
+    wallColor: string;
+    floorColor: string;
+  }) => {
+    history.set(template.objects);
+    setRoom(template.room);
+    setWallColor(template.wallColor);
+    setFloorColor(template.floorColor);
+    setSelectedId(null);
+  }, [history]);
+
   const handleRotate90 = useCallback((direction: "left" | "right" | "up" | "down") => {
     const obj = history.state.find((o) => o.id === selectedId);
     if (!obj) return;
@@ -236,6 +249,7 @@ export default function EditorPage() {
         onRoomChange={setRoom}
         splat={splat}
         onSplatChange={setSplat}
+        onLoadTemplate={handleLoadTemplate}
       />
 
       <div className="flex-1 flex flex-col">

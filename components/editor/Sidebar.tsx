@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { FURNITURE_CATALOG, FurnitureItem, RoomConfig, SplatConfig } from "./types";
+import { TEMPLATES } from "./templates";
 
 interface SidebarProps {
   onAddFurniture: (item: FurnitureItem) => void;
@@ -13,6 +14,7 @@ interface SidebarProps {
   onRoomChange: (room: RoomConfig) => void;
   splat: SplatConfig | null;
   onSplatChange: (splat: SplatConfig | null) => void;
+  onLoadTemplate: (template: { objects: any[]; room: RoomConfig; wallColor: string; floorColor: string }) => void;
 }
 
 const wallColors = ["#e8e4df", "#f5f0eb", "#d4cfc7", "#c9d6df", "#d5c4a1", "#bfc9c3", "#e8d5d5", "#ffffff"];
@@ -26,6 +28,7 @@ export default function Sidebar({
   floorColor, onFloorColorChange,
   room, onRoomChange,
   splat, onSplatChange,
+  onLoadTemplate,
 }: SidebarProps) {
   const [activeTab, setActiveTab] = useState<Tab>("moveis");
   const [expandedCategory, setExpandedCategory] = useState<string | null>("Sala de Estar");
@@ -172,6 +175,23 @@ export default function Sidebar({
 
         {activeTab === "sala" && (
           <div className="p-4 space-y-6">
+            {/* Templates */}
+            <div>
+              <h3 className="text-sm font-medium mb-3">Plantas Prontas</h3>
+              <div className="space-y-2">
+                {TEMPLATES.map((tmpl) => (
+                  <button
+                    key={tmpl.id}
+                    onClick={() => onLoadTemplate(tmpl.create())}
+                    className="w-full p-3 rounded-lg bg-gradient-to-r from-blue-500/20 to-cyan-500/20 border border-blue-500/30 hover:border-blue-400/50 transition-colors text-left"
+                  >
+                    <div className="text-sm font-medium text-white">{tmpl.name}</div>
+                    <div className="text-xs text-slate-400 mt-1">{tmpl.description}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {/* Dimensions */}
             <div>
               <h3 className="text-sm font-medium mb-3">Dimensões da Sala</h3>
