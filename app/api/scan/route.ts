@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({
         status: "demo",
         message: "Modo demo — REPLICATE_API_TOKEN não configurado. Usando scan de exemplo.",
-        splatUrl: "https://huggingface.co/cakewalk/splat-data/resolve/main/nike.splat",
+        splatUrl: "https://raw.githubusercontent.com/mkkellogg/GaussianSplats3D/main/demo/assets/data/garden/garden.ksplat",
       });
     }
 
