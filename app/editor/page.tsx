@@ -1,45 +1,132 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import EditorViewport from "@/components/editor/EditorViewport";
 import Sidebar from "@/components/editor/Sidebar";
 import Toolbar from "@/components/editor/Toolbar";
-import { FurnitureItem, PlacedObject, EditorMode } from "@/components/editor/types";
+import { FurnitureItem, PlacedObject, EditorMode, EditorState } from "@/components/editor/types";
+import { useHistory } from "@/components/editor/useHistory";
+
+const STORAGE_KEY = "imovel3d_project";
+
+function loadProject(): EditorState | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const data = localStorage.getItem(STORAGE_KEY);
+    return data ? JSON.parse(data) : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveProject(state: EditorState) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  } catch {}
+}
 
 export default function EditorPage() {
-  const [placedObjects, setPlacedObjects] = useState<PlacedObject[]>([]);
+  const saved = loadProject();
+  const history = useHistory<PlacedObject[]>(saved?.objects ?? []);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [mode, setMode] = useState<EditorMode>("translate");
-  const [wallColor, setWallColor] = useState("#e8e4df");
-  const [floorColor, setFloorColor] = useState("#c4b8a8");
+  const [wallColor, setWallColor] = useState(saved?.wallColor ?? "#e8e4df");
+  const [floorColor, setFloorColor] = useState(saved?.floorColor ?? "#c4b8a8");
+  const [showSaved, setShowSaved] = useState(false);
 
-  const handleAddFurniture = (item: FurnitureItem) => {
+  // Auto-save on changes
+  useEffect(() => {
+    saveProject({ objects: history.state, wallColor, floorColor });
+  }, [history.state, wallColor, floorColor]);
+
+  const handleAddFurniture = useCallback((item: FurnitureItem) => {
     const newObj: PlacedObject = {
-      id: `obj_${Date.now()}`,
+      id: `obj_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
       furniture: item,
-      position: [0, item.defaultY ?? 0, 0],
+      position: [
+        (Math.random() - 0.5) * 2,
+        item.defaultY ?? 0,
+        (Math.random() - 0.5) * 2,
+      ],
       rotation: [0, 0, 0],
       scale: [1, 1, 1],
     };
-    setPlacedObjects((prev) => [...prev, newObj]);
+    history.set([...history.state, newObj]);
     setSelectedId(newObj.id);
-  };
+  }, [history]);
 
-  const handleUpdateObject = (id: string, updates: Partial<PlacedObject>) => {
-    setPlacedObjects((prev) =>
-      prev.map((obj) => (obj.id === id ? { ...obj, ...updates } : obj))
+  const handleUpdateObject = useCallback((id: string, updates: Partial<PlacedObject>) => {
+    history.setDirect(
+      history.state.map((obj) => (obj.id === id ? { ...obj, ...updates } : obj))
     );
-  };
+  }, [history]);
 
-  const handleDeleteSelected = () => {
+  const handleDeleteSelected = useCallback(() => {
     if (!selectedId) return;
-    setPlacedObjects((prev) => prev.filter((obj) => obj.id !== selectedId));
+    history.set(history.state.filter((obj) => obj.id !== selectedId));
     setSelectedId(null);
-  };
+  }, [selectedId, history]);
+
+  const handleDuplicate = useCallback(() => {
+    const obj = history.state.find((o) => o.id === selectedId);
+    if (!obj) return;
+    const newObj: PlacedObject = {
+      ...obj,
+      id: `obj_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      position: [obj.position[0] + 0.5, obj.position[1], obj.position[2] + 0.5],
+    };
+    history.set([...history.state, newObj]);
+    setSelectedId(newObj.id);
+  }, [selectedId, history]);
+
+  const handleSave = useCallback(() => {
+    saveProject({ objects: history.state, wallColor, floorColor });
+    setShowSaved(true);
+    setTimeout(() => setShowSaved(false), 2000);
+  }, [history.state, wallColor, floorColor]);
+
+  const handleClearAll = useCallback(() => {
+    history.set([]);
+    setSelectedId(null);
+  }, [history]);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.tagName === "INPUT" || target.tagName === "TEXTAREA") return;
+
+      if (e.key === "Delete" || e.key === "Backspace") {
+        handleDeleteSelected();
+      } else if (e.key === "g" || e.key === "G") {
+        setMode("translate");
+      } else if (e.key === "r" && !e.ctrlKey) {
+        setMode("rotate");
+      } else if (e.key === "s" && !e.ctrlKey) {
+        setMode("scale");
+      } else if (e.key === "d" && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        handleDuplicate();
+      } else if (e.key === "z" && (e.ctrlKey || e.metaKey) && !e.shiftKey) {
+        e.preventDefault();
+        history.undo();
+      } else if (
+        (e.key === "z" && (e.ctrlKey || e.metaKey) && e.shiftKey) ||
+        (e.key === "y" && (e.ctrlKey || e.metaKey))
+      ) {
+        e.preventDefault();
+        history.redo();
+      } else if (e.key === "Escape") {
+        setSelectedId(null);
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [handleDeleteSelected, handleDuplicate, history]);
 
   return (
     <div className="h-screen w-screen flex bg-slate-900 text-white overflow-hidden">
-      {/* Sidebar */}
       <Sidebar
         onAddFurniture={handleAddFurniture}
         wallColor={wallColor}
@@ -48,21 +135,23 @@ export default function EditorPage() {
         onFloorColorChange={setFloorColor}
       />
 
-      {/* Main area */}
       <div className="flex-1 flex flex-col">
-        {/* Toolbar */}
         <Toolbar
           mode={mode}
           onModeChange={setMode}
           onDelete={handleDeleteSelected}
+          onDuplicate={handleDuplicate}
+          onUndo={history.undo}
+          onRedo={history.redo}
+          onSave={handleSave}
+          onClear={handleClearAll}
           hasSelection={!!selectedId}
-          objectCount={placedObjects.length}
+          objectCount={history.state.length}
         />
 
-        {/* 3D Viewport */}
         <div className="flex-1 relative">
           <EditorViewport
-            placedObjects={placedObjects}
+            placedObjects={history.state}
             selectedId={selectedId}
             onSelect={setSelectedId}
             onUpdateObject={handleUpdateObject}
@@ -70,6 +159,20 @@ export default function EditorPage() {
             wallColor={wallColor}
             floorColor={floorColor}
           />
+
+          {/* Saved toast */}
+          {showSaved && (
+            <div className="absolute top-4 right-4 px-4 py-2 bg-green-500/90 rounded-lg text-sm font-medium animate-fade-in">
+              Projeto salvo!
+            </div>
+          )}
+
+          {/* Help */}
+          <div className="absolute bottom-4 left-4 text-xs text-slate-500 space-y-1">
+            <div>G = Mover | R = Rotacionar | S = Escalar</div>
+            <div>Ctrl+D = Duplicar | Del = Deletar | Esc = Deselecionar</div>
+            <div>Ctrl+Z = Desfazer | Ctrl+Shift+Z = Refazer</div>
+          </div>
         </div>
       </div>
     </div>

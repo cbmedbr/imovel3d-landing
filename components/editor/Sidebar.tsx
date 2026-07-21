@@ -93,7 +93,7 @@ export default function Sidebar({
                       >
                         <div
                           className="w-10 h-10 rounded-md mb-2"
-                          style={{ backgroundColor: item.color }}
+                          style={{ backgroundColor: item.parts[0]?.color ?? "#666" }}
                         />
                         <span className="text-xs text-center text-slate-300 leading-tight">
                           {item.name}
